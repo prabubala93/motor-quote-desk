@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quote Desk — Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy: #12213A;
+    --paper: #F6F4EF;
+    --ink: #262B33;
+    --amber: #B8792F;
+    --amber-soft: #F0E3D0;
+    --rule: #D8D2C4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 {
+    font-family: Georgia, serif;
+    font-size: 1.3rem;
+    font-weight: normal;
+    margin: 0;
+  }
+  header button {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  main {
+    max-width: 1100px;
+    margin: 32px auto;
+    padding: 0 20px 60px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  #login-screen { max-width: 360px; margin: 80px auto; }
+  input, select {
+    padding: 9px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-size: 0.9rem;
+    background: #fdfcfa;
+  }
+  label {
+    display: block;
+    font-size: 0.78rem;
+    color: #6b6f76;
+    margin-bottom: 4px;
+  }
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 6px;
+  }
+  button.primary {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  button.export {
+    background: var(--amber-soft);
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 8px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-left: 8px;
+  }
+  .summary-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 4px;
+  }
+  .summary-box {
+    flex: 1;
+    background: var(--amber-soft);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+  .summary-box .label { font-size: 0.78rem; color: var(--amber); }
+  .summary-box .value { font-family: Georgia, serif; font-size: 1.4rem; margin-top: 4px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-top: 16px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  th { color: #6b6f76; font-weight: 600; font-size: 0.78rem; }
+  .hidden { display: none; }
+  .note { font-size: 0.8rem; color: #8a8e94; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Quote Desk — Admin</h1>
+  <button id="logout-btn" class="hidden">Sign out</button>
+</header>
+
+<main>
+
+  <div id="login-screen" class="card">
+    <h2 style="font-family:Georgia,serif;font-size:1.05rem;">Admin sign in</h2>
+    <label>Email</label>
+    <input type="email" id="email" style="width:100%;margin-bottom:12px;">
+    <label>Password</label>
+    <input type="password" id="password" style="width:100%;margin-bottom:12px;">
+    <button class="primary" id="login-btn" style="width:100%;">Sign in</button>
+    <p class="note" id="login-error"></p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+
+    <div class="card">
+      <div class="filters">
+        <div>
+          <label>From</label>
+          <input type="date" id="date-from">
+        </div>
+        <div>
+          <label>To</label>
+          <input type="date" id="date-to">
+        </div>
+        <div>
+          <label>Product</label>
+          <select id="product-filter">
+            <option value="">All</option>
+            <option value="motor">Motor</option>
+          </select>
+        </div>
+        <div>
+          <label>Vehicle type</label>
+          <select id="vehicle-type-filter"><option value="">All</option></select>
+        </div>
+        <button class="primary" id="apply-filters-btn">Apply</button>
+      </div>
+      <p class="note" id="load-status"></p>
+    </div>
+
+    <div class="card">
+      <div class="summary-row">
+        <div class="summary-box">
+          <div class="label">Quotes in range</div>
+          <div class="value" id="summary-count">—</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Total premium</div>
+          <div class="value" id="summary-premium">—</div>
+        </div>
+        <div class="summary-box">
+          <div class="label">Average premium</div>
+          <div class="value" id="summary-avg">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="font-family:Georgia,serif;font-size:1.05rem;margin:0;">Quotes</h2>
+        <div>
+          <button class="export" id="export-csv-btn">Export CSV</button>
+          <button class="export" id="export-xlsx-btn">Export Excel</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="quotes-table">
+          <thead>
+            <tr>
+              <th>Quote ID</th><th>Date</th><th>Customer</th><th>Reg. No.</th>
+              <th>Product</th><th>Vehicle type</th><th>OD discount %</th><th>Premium</th>
+            </tr>
+          </thead>
+          <tbody id="quotes-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs, query, where, orderBy }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // TODO: same Firebase project config as client/index.html
+  const firebaseConfig = {
+  apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
+  authDomain: "motor-premium-calculator.firebaseapp.com",
+  projectId: "motor-premium-calculator",
+  storageBucket: "motor-premium-calculator.firebasestorage.app",
+  messagingSenderId: "409058272522",
+  appId: "1:409058272522:web:51bc11277906cfb40406f3",
+  measurementId: "G-5RDB6Z53L9"
+};
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const el = (id) => document.getElementById(id);
+  let currentRows = [];
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      el("login-screen").classList.remove("hidden");
+      el("dashboard").classList.add("hidden");
+      el("logout-btn").classList.add("hidden");
+      return;
+    }
+    // Requires a custom claim set on this user: admin === true.
+    // Set it via Firebase Admin SDK, e.g.:
+    //   admin.auth().setCustomUserClaims(uid, { admin: true })
+    const token = await user.getIdTokenResult();
+    if (!token.claims.admin) {
+      el("login-error").textContent = "This account doesn't have admin access.";
+      await signOut(auth);
+      return;
+    }
+    el("login-screen").classList.add("hidden");
+    el("dashboard").classList.remove("hidden");
+    el("logout-btn").classList.remove("hidden");
+    loadQuotes();
+  });
+
+  el("login-btn").onclick = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, el("email").value, el("password").value);
+    } catch (e) {
+      el("login-error").textContent = "Sign-in failed — check email and password.";
+    }
+  };
+  el("logout-btn").onclick = () => signOut(auth);
+
+  async function loadQuotes() {
+    el("load-status").textContent = "Loading…";
+    const snap = await getDocs(query(collection(db, "quotes"), orderBy("created_at", "desc")));
+    currentRows = snap.docs.map((d) => {
+      const data = d.data();
+      return {
+        quote_id: data.quote_id || d.id,
+        date: data.created_at?.toDate ? data.created_at.toDate() : null,
+        customer_name: data.customer_fields?.customer_name || "",
+        registration_number: data.customer_fields?.registration_number || "",
+        product: data.product || "",
+        vehicle_type: data.vehicle_type || "",
+        od_discount_pct: data.od_discount_pct ?? "",
+        premium: data.premium ?? 0,
+      };
+    });
+    populateVehicleTypeFilter();
+    el("load-status").textContent = `${currentRows.length} quotes loaded.`;
+    renderTable(currentRows);
+  }
+
+  function populateVehicleTypeFilter() {
+    const types = [...new Set(currentRows.map((r) => r.vehicle_type).filter(Boolean))].sort();
+    const select = el("vehicle-type-filter");
+    select.innerHTML = `<option value="">All</option>` + types.map((t) => `<option>${t}</option>`).join("");
+  }
+
+  function applyFilters() {
+    const from = el("date-from").value ? new Date(el("date-from").value) : null;
+    const to = el("date-to").value ? new Date(el("date-to").value + "T23:59:59") : null;
+    const product = el("product-filter").value;
+    const vehicleType = el("vehicle-type-filter").value;
+
+    const filtered = currentRows.filter((r) => {
+      if (from && (!r.date || r.date < from)) return false;
+      if (to && (!r.date || r.date > to)) return false;
+      if (product && r.product !== product) return false;
+      if (vehicleType && r.vehicle_type !== vehicleType) return false;
+      return true;
+    });
+    renderTable(filtered);
+  }
+  el("apply-filters-btn").onclick = applyFilters;
+
+  function renderTable(rows) {
+    el("quotes-tbody").innerHTML = rows.map((r) => `
+      <tr>
+        <td>${r.quote_id.slice(0, 8)}</td>
+        <td>${r.date ? r.date.toLocaleDateString("en-IN") : "—"}</td>
+        <td>${r.customer_name}</td>
+        <td>${r.registration_number}</td>
+        <td>${r.product}</td>
+        <td>${r.vehicle_type}</td>
+        <td>${r.od_discount_pct}</td>
+        <td>₹${Number(r.premium).toLocaleString("en-IN")}</td>
+      </tr>
+    `).join("");
+
+    const total = rows.reduce((sum, r) => sum + Number(r.premium || 0), 0);
+    el("summary-count").textContent = rows.length;
+    el("summary-premium").textContent = "₹" + total.toLocaleString("en-IN");
+    el("summary-avg").textContent = rows.length ? "₹" + Math.round(total / rows.length).toLocaleString("en-IN") : "—";
+
+    window._filteredRows = rows;
+  }
+
+  function rowsToAOA(rows) {
+    const header = ["Quote ID", "Date", "Customer", "Reg. No.", "Product", "Vehicle Type", "OD Discount %", "Premium"];
+    const body = rows.map((r) => [
+      r.quote_id, r.date ? r.date.toLocaleDateString("en-IN") : "", r.customer_name,
+      r.registration_number, r.product, r.vehicle_type, r.od_discount_pct, r.premium,
+    ]);
+    return [header, ...body];
+  }
+
+  el("export-csv-btn").onclick = () => {
+    const rows = window._filteredRows || currentRows;
+    const ws = XLSX.utils.aoa_to_sheet(rowsToAOA(rows));
+    const csv = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "quotes.csv";
+    a.click();
+  };
+
+  el("export-xlsx-btn").onclick = () => {
+    const rows = window._filteredRows || currentRows;
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rowsToAOA(rows));
+    XLSX.utils.book_append_sheet(wb, ws, "Quotes");
+    XLSX.writeFile(wb, "quotes.xlsx");
+  };
+</script>
+
+</body>
+</html>
