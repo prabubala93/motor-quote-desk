@@ -341,7 +341,7 @@
     const body = rows.map((r) => [
       r.quote_id, r.date ? r.date.toLocaleDateString("en-IN") : "", r.customer_name,
       r.registration_number, r.product, r.vehicle_type, r.od_discount_pct, r.premium,
-    ]);
+    ];
     return [header, ...body];
   }
 
