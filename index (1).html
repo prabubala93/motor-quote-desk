@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor Quote Desk</title>
+<style>
+  :root {
+    --navy: #12213A;
+    --navy-soft: #1D3355;
+    --paper: #F6F4EF;
+    --ink: #262B33;
+    --amber: #B8792F;
+    --amber-soft: #F0E3D0;
+    --rule: #D8D2C4;
+    --ok: #3F7A5E;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.3rem;
+    font-weight: normal;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+  header button {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  main {
+    max-width: 640px;
+    margin: 32px auto;
+    padding: 0 20px 60px;
+  }
+  .card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-family: Georgia, serif;
+    font-size: 1.05rem;
+    margin: 0 0 16px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 10px;
+  }
+  #login-screen {
+    max-width: 360px;
+    margin: 80px auto;
+  }
+  input, select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    background: #fdfcfa;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: #6b6f76;
+    margin-bottom: 4px;
+  }
+  .field-highlight input {
+    border: 1.5px solid var(--amber);
+    background: var(--amber-soft);
+  }
+  .field-highlight label {
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  button.primary {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+  button.secondary {
+    background: transparent;
+    color: var(--navy);
+    border: 1px solid var(--navy);
+    padding: 10px 20px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    width: 100%;
+    margin-top: 8px;
+  }
+  #upload-zone {
+    border: 1.5px dashed var(--rule);
+    border-radius: 4px;
+    padding: 40px 20px;
+    text-align: center;
+    color: #7a7e85;
+    cursor: pointer;
+  }
+  #upload-zone.drag {
+    border-color: var(--amber);
+    background: var(--amber-soft);
+  }
+  .premium-total {
+    background: var(--navy);
+    color: #fff;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .premium-total .amount {
+    font-family: Georgia, serif;
+    font-size: 2rem;
+  }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
+    font-size: 0.9rem;
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .doc-type-tag {
+    display: inline-block;
+    background: var(--amber-soft);
+    color: var(--amber);
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 3px;
+    margin-bottom: 12px;
+  }
+  .hidden { display: none; }
+  .note {
+    font-size: 0.8rem;
+    color: #8a8e94;
+    margin-top: -4px;
+    margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Motor Quote Desk</h1>
+  <button id="logout-btn" class="hidden">Sign out</button>
+</header>
+
+<main>
+
+  <!-- LOGIN -->
+  <div id="login-screen" class="card">
+    <h2>Sign in</h2>
+    <label>Email</label>
+    <input type="email" id="email">
+    <label>Password</label>
+    <input type="password" id="password">
+    <button class="primary" id="login-btn">Sign in</button>
+    <p class="note" id="login-error"></p>
+  </div>
+
+  <!-- UPLOAD -->
+  <div id="upload-screen" class="hidden">
+    <div class="card">
+      <h2>Upload a document</h2>
+      <p class="note">RC book or previous policy — image or PDF. Fields below will be drafted from whichever you provide, then you can correct them.</p>
+      <div id="upload-zone">
+        <p>Click to choose a file, or drag one here</p>
+        <input type="file" id="file-input" accept="image/*,.pdf" class="hidden">
+      </div>
+      <p class="note" id="upload-status"></p>
+    </div>
+  </div>
+
+  <!-- REVIEW / EDIT -->
+  <div id="review-screen" class="hidden">
+    <div class="card">
+      <span class="doc-type-tag" id="doc-type-tag"></span>
+      <h2>Customer & vehicle identity</h2>
+
+      <label>Customer name</label>
+      <input id="customer_name">
+
+      <label>Address</label>
+      <input id="customer_address">
+
+      <div class="field-row">
+        <div>
+          <label>Registration number</label>
+          <input id="registration_number">
+        </div>
+        <div>
+          <label>Chassis number</label>
+          <input id="chassis_number">
+        </div>
+      </div>
+
+      <label>Engine number</label>
+      <input id="engine_number">
+
+      <h2>Confirm details</h2>
+
+      <label>Vehicle type</label>
+      <select id="vehicle_type">
+        <option>Two Wheelers</option>
+        <option>Private Cars</option>
+        <option>Taxi</option>
+        <option>PCV > 6 PSGR</option>
+        <option>GCV 4 Wheelers</option>
+        <option>GCV 3 Wheeler</option>
+        <option>PCV 3 Wheeler Upto 6 PSGR</option>
+        <option>PCV 3 Wheeler > 6</option>
+      </select>
+
+      <p class="note" id="rate-warning"></p>
+
+      <div class="field-row">
+        <div>
+          <label>Zone</label>
+          <select id="zone"></select>
+        </div>
+        <div>
+          <label>Rating category</label>
+          <select id="rating_category"></select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label>Vehicle age (years)</label>
+          <input type="number" id="vehicle_age_years">
+        </div>
+        <div>
+          <label>Seats</label>
+          <input type="number" id="seats">
+        </div>
+      </div>
+
+      <div class="field-row field-highlight">
+        <div>
+          <label>Sum Insured (IDV)</label>
+          <input type="number" id="idv">
+        </div>
+        <div>
+          <label>OD discount %</label>
+          <input type="number" id="od_discount_pct">
+        </div>
+      </div>
+
+      <label>Previous NCB %</label>
+      <input type="number" id="previous_ncb">
+
+      <div class="breakdown-row">
+        <span>OD rate (from chart)</span><span id="od-rate-display">—</span>
+      </div>
+      <div class="breakdown-row">
+        <span>TP rate (from chart)</span><span id="tp-rate-display">—</span>
+      </div>
+
+      <button class="primary" id="recalculate-btn">Recalculate</button>
+      <button class="secondary" id="new-upload-btn">Start a new quote</button>
+    </div>
+
+    <div class="card" id="result-card">
+      <h2>Quote</h2>
+      <div class="premium-total">
+        <div>Total premium</div>
+        <div class="amount" id="final-premium">—</div>
+      </div>
+      <div id="od-breakdown"></div>
+      <div id="tp-breakdown"></div>
+    </div>
+  </div>
+
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  // TODO: replace with your Firebase project config
+  const firebaseConfig = {
+  apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
+  authDomain: "motor-premium-calculator.firebaseapp.com",
+  projectId: "motor-premium-calculator",
+  storageBucket: "motor-premium-calculator.firebasestorage.app",
+  messagingSenderId: "409058272522",
+  appId: "1:409058272522:web:51bc11277906cfb40406f3",
+  measurementId: "G-5RDB6Z53L9"
+};
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // TODO: replace with your deployed Cloud Run service URL
+  const BACKEND_URL =" https://motor-quote-desk-409058272522.asia-south1.run.app";
+
+  let currentQuoteId = null;
+  let currentUid = null;
+
+
+    if (user) {
+      currentUid = user.uid;
+      el("login-screen").classList.add("hidden");
+      el("upload-screen").classList.remove("hidden");
+      el("logout-btn").classList.remove("hidden");
+    } else {
+      currentUid = null;
+      el("login-screen").classList.remove("hidden");
+      el("upload-screen").classList.add("hidden");
+      el("review-screen").classList.add("hidden");
+      el("logout-btn").classList.add("hidden");
+    }
+  });
+
+  el("login-btn").onclick = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, el("email").value, el("password").value);
+    } catch (e) {
+      el("login-error").textContent = "Sign-in failed — check email and password.";
+    }
+  };
+
+  el("logout-btn").onclick = () => signOut(auth);
+
+  el("upload-zone").onclick = () => el("file-input").click();
+  el("file-input").onchange = (e) => handleFile(e.target.files[0]);
+
+  ["dragover", "dragleave", "drop"].forEach((evt) => {
+    el("upload-zone").addEventListener(evt, (e) => {
+      e.preventDefault();
+      el("upload-zone").classList.toggle("drag", evt === "dragover");
+      if (evt === "drop") handleFile(e.dataTransfer.files[0]);
+    });
+  });
+
+  async function handleFile(file) {
+    if (!file) return;
+    el("upload-status").textContent = "Reading document…";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("uid", currentUid);
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/extract-and-quote`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      currentQuoteId = data.quote_id;
+      await populateReview(data.extracted_fields, data.customer_fields, data.inputs, data.result, data.rate_matched);
+      el("upload-screen").classList.add("hidden");
+      el("review-screen").classList.remove("hidden");
+    } catch (err) {
+      el("upload-status").textContent = "Couldn't read that document — try again or enter details manually.";
+    }
+  }
+
+  async function loadRateOptions(vehicleType, zone) {
+    const params = new URLSearchParams({ vehicle_type: vehicleType });
+    if (zone) params.set("zone", zone);
+    const res = await fetch(`${BACKEND_URL}/rate-options?${params}`);
+    return res.json();
+  }
+
+  function fillSelect(select, options, selected) {
+    select.innerHTML = options.map((o) => `<option ${o === selected ? "selected" : ""}>${o}</option>`).join("");
+  }
+
+  async function refreshZoneAndCategory(vehicleType, preferredZone, preferredCategory) {
+    const { zones } = await loadRateOptions(vehicleType);
+    const zone = zones.includes(preferredZone) ? preferredZone : zones[0];
+    fillSelect(el("zone"), zones, zone);
+
+    const { categories } = await loadRateOptions(vehicleType, zone);
+    const category = categories.includes(preferredCategory) ? preferredCategory : categories[0];
+    fillSelect(el("rating_category"), categories, category);
+  }
+
+  async function populateReview(extracted, customerFields, inputs, result, rateMatched) {
+    el("doc-type-tag").textContent = (extracted._doc_type || "unknown").toUpperCase() + " detected";
+    el("customer_name").value = customerFields.customer_name || "";
+    el("customer_address").value = customerFields.customer_address || "";
+    el("registration_number").value = customerFields.registration_number || "";
+    el("chassis_number").value = customerFields.chassis_number || "";
+    el("engine_number").value = customerFields.engine_number || "";
+    el("vehicle_type").value = inputs.vehicle_type || "Private Cars";
+    el("vehicle_age_years").value = inputs.vehicle_age_years || "";
+    el("seats").value = inputs.seats || "";
+    el("idv").value = inputs.idv || "";
+    el("od_discount_pct").value = inputs.od_discount_pct || 0;
+    el("previous_ncb").value = inputs.previous_ncb || "";
+
+    await refreshZoneAndCategory(inputs.vehicle_type, inputs.zone, inputs.rating_category);
+    // Zone/category are now chart-valid defaults, not necessarily what OCR
+    // guessed — recalculate once more so rates match what's shown.
+    await triggerRecalculate();
+  }
+
+  function renderResult(result, rateMatched) {
+    el("final-premium").textContent = "₹" + result.final_premium.toLocaleString("en-IN");
+    el("od-rate-display").textContent = result.od.basic_premium ? (Number(el("idv").value) ? (result.od.basic_premium / Number(el("idv").value) * 100).toFixed(3) + "%" : "—") : "—";
+    el("tp-rate-display").textContent = "₹" + result.tp.tp_base_tax;
+    el("od-breakdown").innerHTML = `
+      <div class="breakdown-row"><span>OD basic premium</span><span>₹${result.od.basic_premium}</span></div>
+      <div class="breakdown-row"><span>Add-ons</span><span>₹${result.od.addon_total}</span></div>
+      <div class="breakdown-row"><span>OD total (incl. tax)</span><span>₹${result.od.od_total}</span></div>
+    `;
+    el("tp-breakdown").innerHTML = `
+      <div class="breakdown-row"><span>TP total (incl. tax)</span><span>₹${result.tp.tp_total}</span></div>
+    `;
+    el("rate-warning").textContent = rateMatched === false
+      ? "No exact rate chart match for this zone/category/age combination — premium shown uses a zero rate until this is corrected."
+      : "";
+  }
+
+  async function triggerRecalculate() {
+    const fields = {
+      vehicle_type: el("vehicle_type").value,
+      zone: el("zone").value,
+      rating_category: el("rating_category").value,
+      vehicle_age_years: Number(el("vehicle_age_years").value),
+      seats: Number(el("seats").value) || null,
+      idv: Number(el("idv").value),
+      od_discount_pct: Number(el("od_discount_pct").value),
+      previous_ncb: Number(el("previous_ncb").value),
+    };
+
+    const customer_fields = {
+      customer_name: el("customer_name").value,
+      customer_address: el("customer_address").value,
+      registration_number: el("registration_number").value,
+      chassis_number: el("chassis_number").value,
+      engine_number: el("engine_number").value,
+    };
+
+    const res = await fetch(`${BACKEND_URL}/recalculate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quote_id: currentQuoteId, fields, customer_fields }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(data.error); return; }
+    renderResult(data.result, data.rate_matched);
+  }
+
+  el("recalculate-btn").onclick = triggerRecalculate;
+
+  el("vehicle_type").onchange = async () => {
+    await refreshZoneAndCategory(el("vehicle_type").value);
+    triggerRecalculate();
+  };
+  el("zone").onchange = async () => {
+    const { categories } = await loadRateOptions(el("vehicle_type").value, el("zone").value);
+    fillSelect(el("rating_category"), categories, categories[0]);
+    triggerRecalculate();
+  };
+  el("rating_category").onchange = triggerRecalculate;
+
+  el("new-upload-btn").onclick = () => {
+    currentQuoteId = null;
+    el("review-screen").classList.add("hidden");
+    el("upload-screen").classList.remove("hidden");
+    el("upload-status").textContent = "";
+  };
+</script>
+
+</body>
+</html>
