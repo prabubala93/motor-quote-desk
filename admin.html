@@ -222,16 +222,16 @@
   import { getFirestore, collection, getDocs, query, where, orderBy }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // TODO: same Firebase project config as client/index.html
+  // Firebase project config
   const firebaseConfig = {
-  apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
-  authDomain: "motor-premium-calculator.firebaseapp.com",
-  projectId: "motor-premium-calculator",
-  storageBucket: "motor-premium-calculator.firebasestorage.app",
-  messagingSenderId: "409058272522",
-  appId: "1:409058272522:web:51bc11277906cfb40406f3",
-  measurementId: "G-5RDB6Z53L9"
-};
+    apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
+    authDomain: "motor-premium-calculator.firebaseapp.com",
+    projectId: "motor-premium-calculator",
+    storageBucket: "motor-premium-calculator.firebasestorage.app",
+    messagingSenderId: "409058272522",
+    appId: "1:409058272522:web:51bc11277906cfb40406f3",
+    measurementId: "G-5RDB6Z53L9",
+  };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
@@ -341,7 +341,7 @@
     const body = rows.map((r) => [
       r.quote_id, r.date ? r.date.toLocaleDateString("en-IN") : "", r.customer_name,
       r.registration_number, r.product, r.vehicle_type, r.od_discount_pct, r.premium,
-    ];
+    ]);
     return [header, ...body];
   }
 

@@ -308,24 +308,27 @@
   import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  // TODO: replace with your Firebase project config
+  // Firebase project config
   const firebaseConfig = {
-  apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
-  authDomain: "motor-premium-calculator.firebaseapp.com",
-  projectId: "motor-premium-calculator",
-  storageBucket: "motor-premium-calculator.firebasestorage.app",
-  messagingSenderId: "409058272522",
-  appId: "1:409058272522:web:51bc11277906cfb40406f3",
-  measurementId: "G-5RDB6Z53L9"
-};
+    apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
+    authDomain: "motor-premium-calculator.firebaseapp.com",
+    projectId: "motor-premium-calculator",
+    storageBucket: "motor-premium-calculator.firebasestorage.app",
+    messagingSenderId: "409058272522",
+    appId: "1:409058272522:web:51bc11277906cfb40406f3",
+    measurementId: "G-5RDB6Z53L9",
+  };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  // TODO: replace with your deployed Cloud Run service URL
-  const BACKEND_URL =" https://motor-quote-desk-409058272522.asia-south1.run.app";
+  // Cloud Run backend URL
+  const BACKEND_URL = "https://motor-quote-desk-409058272522.asia-south1.run.app";
 
   let currentQuoteId = null;
   let currentUid = null;
+
+  const el = (id) => document.getElementById(id);
+
   onAuthStateChanged(auth, (user) => {
     if (user) {
       currentUid = user.uid;
@@ -339,7 +342,7 @@
       el("review-screen").classList.add("hidden");
       el("logout-btn").classList.add("hidden");
     }
-    };
+  });
 
   el("login-btn").onclick = async () => {
     try {
