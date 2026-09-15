@@ -191,11 +191,11 @@
   <!-- UPLOAD -->
   <div id="upload-screen" class="hidden">
     <div class="card">
-      <h2>Upload a document</h2>
-      <p class="note">RC book or previous policy — image or PDF. Fields below will be drafted from whichever you provide, then you can correct them.</p>
+      <h2>Upload documents</h2>
+      <p class="note">RC book and/or previous policy — image or PDF. You can select both at once (hold Ctrl/Cmd while choosing files, or drag both in together) so vehicle details and IDV/NCB are read from whichever document has them.</p>
       <div id="upload-zone">
-        <p>Click to choose a file, or drag one here</p>
-        <input type="file" id="file-input" accept="image/*,.pdf" class="hidden">
+        <p>Click to choose files, or drag them here</p>
+        <input type="file" id="file-input" accept="image/*,.pdf" multiple class="hidden">
       </div>
       <p class="note" id="upload-status"></p>
     </div>
@@ -268,16 +268,16 @@
       <div class="field-row field-highlight">
         <div>
           <label>Sum Insured (IDV)</label>
-          <input type="number" id="idv">
+          <input type="number" id="idv" onchange="window.dispatchEvent(new Event('recalc-trigger'))">
         </div>
         <div>
           <label>OD discount %</label>
-          <input type="number" id="od_discount_pct">
+          <input type="number" id="od_discount_pct" onchange="window.dispatchEvent(new Event('recalc-trigger'))">
         </div>
       </div>
 
       <label>Previous NCB %</label>
-      <input type="number" id="previous_ncb">
+      <input type="number" id="previous_ncb" onchange="window.dispatchEvent(new Event('recalc-trigger'))">
 
       <div class="breakdown-row">
         <span>OD rate (from chart)</span><span id="od-rate-display">—</span>
@@ -355,22 +355,26 @@
   el("logout-btn").onclick = () => signOut(auth);
 
   el("upload-zone").onclick = () => el("file-input").click();
-  el("file-input").onchange = (e) => handleFile(e.target.files[0]);
+  el("file-input").onchange = (e) => handleFiles(e.target.files);
 
   ["dragover", "dragleave", "drop"].forEach((evt) => {
     el("upload-zone").addEventListener(evt, (e) => {
       e.preventDefault();
       el("upload-zone").classList.toggle("drag", evt === "dragover");
-      if (evt === "drop") handleFile(e.dataTransfer.files[0]);
+      if (evt === "drop") handleFiles(e.dataTransfer.files);
     });
   });
 
-  async function handleFile(file) {
-    if (!file) return;
-    el("upload-status").textContent = "Reading document…";
+  async function handleFiles(fileList) {
+    if (!fileList || fileList.length === 0) return;
+    el("upload-status").textContent = fileList.length > 1
+      ? `Reading ${fileList.length} documents…`
+      : "Reading document…";
 
     const formData = new FormData();
-    formData.append("file", file);
+    for (const file of fileList) {
+      formData.append("file", file);
+    }
     formData.append("uid", currentUid);
 
     try {
@@ -479,6 +483,7 @@
   }
 
   el("recalculate-btn").onclick = triggerRecalculate;
+  window.addEventListener("recalc-trigger", triggerRecalculate);
 
   el("vehicle_type").onchange = async () => {
     await refreshZoneAndCategory(el("vehicle_type").value);
