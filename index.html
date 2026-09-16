@@ -281,9 +281,12 @@
         </div>
         <div>
           <label>Seats</label>
-          <input type="number" id="seats">
+          <input type="number" id="seats" onchange="window.dispatchEvent(new Event('category-suggest-trigger'))">
         </div>
       </div>
+
+      <label>Engine capacity (CC)</label>
+      <input type="number" id="engine_cc" onchange="window.dispatchEvent(new Event('category-suggest-trigger'))">
 
       <div class="field-row field-highlight">
         <div>
@@ -297,13 +300,39 @@
       </div>
 
       <label>Previous NCB %</label>
-      <input type="number" id="previous_ncb" onchange="window.dispatchEvent(new Event('recalc-trigger'))">
+      <select id="previous_ncb" onchange="window.dispatchEvent(new Event('recalc-trigger'))">
+        <option value="-1">NIL (no claim-free years yet)</option>
+        <option value="0">0%</option>
+        <option value="20">20%</option>
+        <option value="25">25%</option>
+        <option value="35">35%</option>
+        <option value="45">45%</option>
+        <option value="50">50%</option>
+      </select>
 
       <div class="breakdown-row">
         <span>OD rate (from chart)</span><span id="od-rate-display">—</span>
       </div>
       <div class="breakdown-row">
         <span>TP rate (from chart)</span><span id="tp-rate-display">—</span>
+      </div>
+
+      <h2 style="margin-top:20px;">Add-on covers</h2>
+      <div id="addon-checkboxes">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="nil_depreciation" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Nil Depreciation w/o excess</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="imt_23" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> IMT 23</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="engine_protection_platinum" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Engine Protection Platinum</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="engine_protection_standard" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Engine Protection Standard</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="ev_protect" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> EV Protect</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="return_to_invoice" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Return to Invoice</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="consumables" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Consumables</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="loss_of_key" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Loss of Key</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="tyre_rim_protector" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Tyre and Rim Protector</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="bifuel" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Bifuel</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="compulsory_pa_owner" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Compulsory PA Owner (₹275)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="paid_driver" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Paid Driver (₹50)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="unnamed_passengers" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Unnamed Passengers (₹50/seat)</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="legal_liability_to_passengers" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Legal Liability to Passengers</label>
       </div>
 
       <button class="primary" id="recalculate-btn">Recalculate</button>
@@ -453,9 +482,10 @@
     }
   }
 
-  async function loadRateOptions(vehicleType, zone) {
+  async function loadRateOptions(vehicleType, zone, value) {
     const params = new URLSearchParams({ vehicle_type: vehicleType });
     if (zone) params.set("zone", zone);
+    if (value !== undefined && value !== null && value !== "") params.set("value", value);
     const res = await fetch(`${BACKEND_URL}/rate-options?${params}`);
     return res.json();
   }
@@ -464,15 +494,41 @@
     select.innerHTML = options.map((o) => `<option ${o === selected ? "selected" : ""}>${o}</option>`).join("");
   }
 
+  // Which extracted field decides the rating category, per vehicle type —
+  // CC for two-wheelers/taxi, seat count for passenger-carrying vehicles.
+  function categoryMatchValue(vehicleType) {
+    if (vehicleType === "Two Wheelers" || vehicleType === "Taxi") {
+      return el("engine_cc").value;
+    }
+    if (vehicleType.startsWith("PCV") || vehicleType === "School Bus") {
+      return el("seats").value;
+    }
+    return null;
+  }
+
   async function refreshZoneAndCategory(vehicleType, preferredZone, preferredCategory) {
     const { zones } = await loadRateOptions(vehicleType);
     const zone = zones.includes(preferredZone) ? preferredZone : zones[0];
     fillSelect(el("zone"), zones, zone);
 
-    const { categories } = await loadRateOptions(vehicleType, zone);
-    const category = categories.includes(preferredCategory) ? preferredCategory : categories[0];
+    const value = categoryMatchValue(vehicleType);
+    const { categories, suggested_category } = await loadRateOptions(vehicleType, zone, value);
+    const category = categories.includes(preferredCategory) ? preferredCategory
+      : (suggested_category || categories[0]);
     fillSelect(el("rating_category"), categories, category);
   }
+
+  window.addEventListener("category-suggest-trigger", async () => {
+    const vehicleType = el("vehicle_type").value;
+    const zone = el("zone").value;
+    const value = categoryMatchValue(vehicleType);
+    if (!value) return;
+    const { categories, suggested_category } = await loadRateOptions(vehicleType, zone, value);
+    if (suggested_category) {
+      fillSelect(el("rating_category"), categories, suggested_category);
+      triggerRecalculate();
+    }
+  });
 
   async function populateReview(extracted, customerFields, inputs, result, rateMatched) {
     el("doc-type-tag").textContent = (extracted._doc_type || "unknown").toUpperCase() + " detected";
@@ -484,6 +540,7 @@
     el("vehicle_type").value = inputs.vehicle_type || "Private Cars";
     el("vehicle_age_years").value = inputs.vehicle_age_years || "";
     el("seats").value = inputs.seats || "";
+    el("engine_cc").value = extracted.engine_cc || "";
     el("idv").value = inputs.idv || "";
     el("od_discount_pct").value = inputs.od_discount_pct || 0;
     el("previous_ncb").value = inputs.previous_ncb || "";
@@ -500,6 +557,7 @@
     el("tp-rate-display").textContent = "₹" + result.tp.tp_base_tax;
     el("od-breakdown").innerHTML = `
       <div class="breakdown-row"><span>OD basic premium</span><span>₹${result.od.basic_premium}</span></div>
+      <div class="breakdown-row"><span>Current year NCB applied</span><span>${result.od.current_ncb_pct}%</span></div>
       <div class="breakdown-row"><span>Add-ons</span><span>₹${result.od.addon_total}</span></div>
       <div class="breakdown-row"><span>OD total (incl. tax)</span><span>₹${result.od.od_total}</span></div>
     `;
@@ -509,6 +567,14 @@
     el("rate-warning").textContent = rateMatched === false
       ? "No exact rate chart match for this zone/category/age combination — premium shown uses a zero rate until this is corrected."
       : "";
+  }
+
+  function getAddonsState() {
+    const addons = {};
+    document.querySelectorAll("#addon-checkboxes input[type=checkbox]").forEach((cb) => {
+      addons[cb.dataset.addon] = cb.checked;
+    });
+    return addons;
   }
 
   async function triggerRecalculate() {
@@ -521,6 +587,7 @@
       idv: Number(el("idv").value),
       od_discount_pct: Number(el("od_discount_pct").value),
       previous_ncb: Number(el("previous_ncb").value),
+      addons: getAddonsState(),
     };
 
     const customer_fields = {
