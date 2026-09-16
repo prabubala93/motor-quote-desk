@@ -159,6 +159,24 @@
     border-radius: 3px;
     margin-bottom: 12px;
   }
+  .staged-file-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: #fdfcfa;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    margin-top: 8px;
+    font-size: 0.88rem;
+  }
+  .staged-file-row button {
+    background: transparent;
+    border: none;
+    color: #b04a4a;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
   .hidden { display: none; }
   .note {
     font-size: 0.8rem;
@@ -192,11 +210,13 @@
   <div id="upload-screen" class="hidden">
     <div class="card">
       <h2>Upload documents</h2>
-      <p class="note">RC book and/or previous policy — image or PDF. You can select both at once (hold Ctrl/Cmd while choosing files, or drag both in together) so vehicle details and IDV/NCB are read from whichever document has them.</p>
+      <p class="note">RC book and/or previous policy — image or PDF. Add both if you have them, then generate the quote.</p>
       <div id="upload-zone">
-        <p>Click to choose files, or drag them here</p>
+        <p>Click to add files, or drag them here</p>
         <input type="file" id="file-input" accept="image/*,.pdf" multiple class="hidden">
       </div>
+      <div id="staged-file-list"></div>
+      <button class="primary" id="generate-quote-btn" style="margin-top:12px;" disabled>Generate quote</button>
       <p class="note" id="upload-status"></p>
     </div>
   </div>
@@ -354,18 +374,47 @@
 
   el("logout-btn").onclick = () => signOut(auth);
 
+  let stagedFiles = [];
+
   el("upload-zone").onclick = () => el("file-input").click();
-  el("file-input").onchange = (e) => handleFiles(e.target.files);
+  el("file-input").onchange = (e) => addFiles(e.target.files);
 
   ["dragover", "dragleave", "drop"].forEach((evt) => {
     el("upload-zone").addEventListener(evt, (e) => {
       e.preventDefault();
       el("upload-zone").classList.toggle("drag", evt === "dragover");
-      if (evt === "drop") handleFiles(e.dataTransfer.files);
+      if (evt === "drop") addFiles(e.dataTransfer.files);
     });
   });
 
-  async function handleFiles(fileList) {
+  function addFiles(fileList) {
+    for (const file of fileList) {
+      stagedFiles.push(file);
+    }
+    renderStagedFiles();
+  }
+
+  function removeStagedFile(index) {
+    stagedFiles.splice(index, 1);
+    renderStagedFiles();
+  }
+
+  function renderStagedFiles() {
+    el("staged-file-list").innerHTML = stagedFiles.map((f, i) => `
+      <div class="staged-file-row">
+        <span>${f.name}</span>
+        <button data-index="${i}" class="remove-staged-file">Remove</button>
+      </div>
+    `).join("");
+    document.querySelectorAll(".remove-staged-file").forEach((btn) => {
+      btn.onclick = () => removeStagedFile(Number(btn.dataset.index));
+    });
+    el("generate-quote-btn").disabled = stagedFiles.length === 0;
+  }
+
+  el("generate-quote-btn").onclick = () => generateQuote(stagedFiles);
+
+  async function generateQuote(fileList) {
     if (!fileList || fileList.length === 0) return;
     el("upload-status").textContent = fileList.length > 1
       ? `Reading ${fileList.length} documents…`
@@ -383,14 +432,24 @@
         body: formData,
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (data.error && !data.quote_id) {
+        throw new Error(data.error);
+      }
+
+      if (data.file_errors && data.file_errors.length > 0) {
+        const names = data.file_errors.map((e) => e.filename).join(", ");
+        el("upload-status").textContent = `Note: couldn't read ${names} — the rest were processed.`;
+      }
+
+      stagedFiles = [];
+      renderStagedFiles();
 
       currentQuoteId = data.quote_id;
       await populateReview(data.extracted_fields, data.customer_fields, data.inputs, data.result, data.rate_matched);
       el("upload-screen").classList.add("hidden");
       el("review-screen").classList.remove("hidden");
     } catch (err) {
-      el("upload-status").textContent = "Couldn't read that document — try again or enter details manually.";
+      el("upload-status").textContent = "Couldn't read any of those documents — try again or enter details manually.";
     }
   }
 
