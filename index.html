@@ -177,6 +177,32 @@
     cursor: pointer;
     font-size: 0.85rem;
   }
+  .addon-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    margin-bottom: 16px;
+  }
+  .addon-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 3px;
+    font-size: 0.88rem;
+    color: var(--ink);
+  }
+  .addon-item:hover {
+    background: var(--amber-soft);
+  }
+  .addon-item input {
+    width: auto;
+    margin: 0;
+    accent-color: var(--navy);
+  }
+  @media (min-width: 480px) {
+    .addon-grid { grid-template-columns: 1fr 1fr; }
+  }
   .hidden { display: none; }
   .note {
     font-size: 0.8rem;
@@ -225,6 +251,7 @@
   <div id="review-screen" class="hidden">
     <div class="card">
       <span class="doc-type-tag" id="doc-type-tag"></span>
+      <p class="note" id="reg-mismatch-warning" style="color:#b04a4a;font-weight:600;"></p>
       <h2>Customer & vehicle identity</h2>
 
       <label>Customer name</label>
@@ -318,21 +345,21 @@
       </div>
 
       <h2 style="margin-top:20px;">Add-on covers</h2>
-      <div id="addon-checkboxes">
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="nil_depreciation" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Nil Depreciation w/o excess</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="imt_23" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> IMT 23</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="engine_protection_platinum" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Engine Protection Platinum</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="engine_protection_standard" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Engine Protection Standard</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="ev_protect" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> EV Protect</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="return_to_invoice" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Return to Invoice</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="consumables" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Consumables</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="loss_of_key" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Loss of Key</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="tyre_rim_protector" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Tyre and Rim Protector</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="bifuel" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Bifuel</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="compulsory_pa_owner" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Compulsory PA Owner (₹275)</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="paid_driver" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Paid Driver (₹50)</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="unnamed_passengers" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Unnamed Passengers (₹50/seat)</label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;color:var(--ink);margin-bottom:8px;"><input type="checkbox" data-addon="legal_liability_to_passengers" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Legal Liability to Passengers</label>
+      <div class="addon-grid" id="addon-checkboxes">
+        <label class="addon-item"><input type="checkbox" data-addon="nil_depreciation" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Nil Depreciation w/o excess</label>
+        <label class="addon-item"><input type="checkbox" data-addon="imt_23" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> IMT 23</label>
+        <label class="addon-item"><input type="checkbox" data-addon="engine_protection_platinum" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Engine Protection Platinum</label>
+        <label class="addon-item"><input type="checkbox" data-addon="engine_protection_standard" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Engine Protection Standard</label>
+        <label class="addon-item"><input type="checkbox" data-addon="ev_protect" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> EV Protect</label>
+        <label class="addon-item"><input type="checkbox" data-addon="return_to_invoice" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Return to Invoice</label>
+        <label class="addon-item"><input type="checkbox" data-addon="consumables" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Consumables</label>
+        <label class="addon-item"><input type="checkbox" data-addon="loss_of_key" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Loss of Key</label>
+        <label class="addon-item"><input type="checkbox" data-addon="tyre_rim_protector" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Tyre and Rim Protector</label>
+        <label class="addon-item"><input type="checkbox" data-addon="bifuel" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Bifuel</label>
+        <label class="addon-item"><input type="checkbox" data-addon="compulsory_pa_owner" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Compulsory PA Owner (₹275)</label>
+        <label class="addon-item"><input type="checkbox" data-addon="paid_driver" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Paid Driver (₹50)</label>
+        <label class="addon-item"><input type="checkbox" data-addon="unnamed_passengers" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Unnamed Passengers (₹50/seat)</label>
+        <label class="addon-item"><input type="checkbox" data-addon="legal_liability_to_passengers" onchange="window.dispatchEvent(new Event('recalc-trigger'))"> Legal Liability to Passengers</label>
       </div>
 
       <button class="primary" id="recalculate-btn">Recalculate</button>
@@ -474,7 +501,7 @@
       renderStagedFiles();
 
       currentQuoteId = data.quote_id;
-      await populateReview(data.extracted_fields, data.customer_fields, data.inputs, data.result, data.rate_matched);
+      await populateReview(data.extracted_fields, data.customer_fields, data.inputs, data.result, data.rate_matched, data.registration_mismatch, data.registration_numbers_found);
       el("upload-screen").classList.add("hidden");
       el("review-screen").classList.remove("hidden");
     } catch (err) {
@@ -530,8 +557,11 @@
     }
   });
 
-  async function populateReview(extracted, customerFields, inputs, result, rateMatched) {
+  async function populateReview(extracted, customerFields, inputs, result, rateMatched, regMismatch, regNumbersFound) {
     el("doc-type-tag").textContent = (extracted._doc_type || "unknown").toUpperCase() + " detected";
+    el("reg-mismatch-warning").textContent = regMismatch
+      ? `Warning: uploaded documents show different registration numbers (${(regNumbersFound || []).join(", ")}) — double check these are for the same vehicle before quoting.`
+      : "";
     el("customer_name").value = customerFields.customer_name || "";
     el("customer_address").value = customerFields.customer_address || "";
     el("registration_number").value = customerFields.registration_number || "";
