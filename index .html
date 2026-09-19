@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Motor Quote Desk</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
+<style>
+  :root {
+    --navy: #12213A;
+    --paper: #F6F4EF;
+    --ink: #262B33;
+    --amber: #B8792F;
+    --amber-soft: #F0E3D0;
+    --rule: #D8D2C4;
+    --danger: #B04A4A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 18px 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 {
+    font-family: Georgia, serif;
+    font-size: 1.25rem;
+    font-weight: normal;
+    margin: 0;
+  }
+  header button {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.4);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  main { max-width: 680px; margin: 28px auto; padding: 0 18px 60px; }
+  .card {
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 22px;
+    margin-bottom: 18px;
+  }
+  .card h2 {
+    font-family: Georgia, serif;
+    font-size: 1.02rem;
+    margin: 0 0 14px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 9px;
+  }
+  .card h2.sub { margin-top: 22px; }
+  #login-screen { max-width: 360px; margin: 70px auto; }
+  input, select {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    background: #fdfcfa;
+    font-family: inherit;
+  }
+  label { display: block; font-size: 0.78rem; color: #6b6f76; margin-bottom: 4px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-highlight input { border: 1.5px solid var(--amber); background: var(--amber-soft); }
+  .field-highlight label { color: var(--amber); font-weight: 600; }
+  button.primary {
+    background: var(--navy); color: #fff; border: none;
+    padding: 11px 20px; border-radius: 3px; cursor: pointer;
+    font-size: 0.95rem; width: 100%;
+  }
+  button.primary:disabled { background: #9aa0aa; cursor: not-allowed; }
+  button.secondary {
+    background: transparent; color: var(--navy); border: 1px solid var(--navy);
+    padding: 10px 20px; border-radius: 3px; cursor: pointer;
+    font-size: 0.9rem; width: 100%; margin-top: 8px;
+  }
+  #upload-zone {
+    border: 1.5px dashed var(--rule); border-radius: 4px;
+    padding: 36px 20px; text-align: center; color: #7a7e85; cursor: pointer;
+  }
+  #upload-zone.drag { border-color: var(--amber); background: var(--amber-soft); }
+  .staged-file-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; background: #fdfcfa; border: 1px solid var(--rule);
+    border-radius: 3px; margin-top: 8px; font-size: 0.87rem;
+  }
+  .staged-file-row button {
+    background: transparent; border: none; color: var(--danger);
+    cursor: pointer; font-size: 0.85rem;
+  }
+  .addon-grid { display: grid; grid-template-columns: 1fr; gap: 2px; margin-bottom: 14px; }
+  @media (min-width: 480px) { .addon-grid { grid-template-columns: 1fr 1fr; } }
+  .addon-item {
+    display: flex; align-items: center; gap: 9px; padding: 7px 9px;
+    border-radius: 3px; font-size: 0.87rem; cursor: pointer;
+  }
+  .addon-item:hover { background: var(--amber-soft); }
+  .addon-item input { width: auto; margin: 0; accent-color: var(--navy); }
+  .premium-total {
+    background: var(--navy); color: #fff; border-radius: 4px;
+    padding: 18px; text-align: center; margin-bottom: 14px;
+  }
+  .premium-total .amount { font-family: Georgia, serif; font-size: 2rem; margin-top: 4px; }
+  .bd-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0; font-size: 0.88rem; border-bottom: 1px solid #ece8de;
+  }
+  .bd-row.total { font-weight: 700; border-top: 1.5px solid var(--rule); border-bottom: none; padding-top: 9px; }
+  .bd-row.sub { color: #6b6f76; padding-left: 14px; font-size: 0.83rem; }
+  .bd-head {
+    font-family: Georgia, serif; font-size: 0.95rem; margin: 18px 0 6px;
+    color: var(--navy);
+  }
+  .hidden { display: none; }
+  .note { font-size: 0.8rem; color: #8a8e94; margin: 6px 0 12px; }
+  .warn { color: var(--danger); font-weight: 600; font-size: 0.85rem; }
+  .doc-tag {
+    display: inline-block; background: var(--amber-soft); color: var(--amber);
+    font-size: 0.75rem; padding: 3px 8px; border-radius: 3px; margin-bottom: 10px;
+  }
+  #ocr-progress {
+    height: 4px; background: var(--rule); border-radius: 2px;
+    overflow: hidden; margin-top: 10px;
+  }
+  #ocr-progress div { height: 100%; width: 0%; background: var(--amber); transition: width .3s; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Motor Quote Desk</h1>
+  <button id="logout-btn" class="hidden">Sign out</button>
+</header>
+
+<main>
+
+  <div id="login-screen" class="card">
+    <h2>Sign in</h2>
+    <label>Email</label>
+    <input type="email" id="email">
+    <label>Password</label>
+    <input type="password" id="password">
+    <button class="primary" id="login-btn">Sign in</button>
+    <p class="note warn" id="login-error"></p>
+  </div>
+
+  <div id="upload-screen" class="hidden">
+    <div class="card">
+      <h2>Upload documents</h2>
+      <p class="note">RC book (front and back) and/or previous policy — images or PDFs. Add all pages, then generate the quote.</p>
+      <div id="upload-zone">
+        <p>Click to add files, or drag them here</p>
+        <input type="file" id="file-input" accept="image/*,.pdf" multiple class="hidden">
+      </div>
+      <div id="staged-file-list"></div>
+      <button class="primary" id="generate-btn" style="margin-top:14px;" disabled>Generate quote</button>
+      <div id="ocr-progress" class="hidden"><div></div></div>
+      <p class="note" id="upload-status"></p>
+    </div>
+  </div>
+
+  <div id="review-screen" class="hidden">
+    <div class="card">
+      <span class="doc-tag" id="doc-tag"></span>
+      <p class="warn" id="reg-warning"></p>
+
+      <h2>Customer &amp; vehicle identity</h2>
+      <label>Customer name</label>
+      <input id="customer_name">
+      <label>Address</label>
+      <input id="customer_address">
+      <div class="field-row">
+        <div><label>Registration number</label><input id="registration_number"></div>
+        <div><label>Chassis number</label><input id="chassis_number"></div>
+      </div>
+      <label>Engine number</label>
+      <input id="engine_number">
+
+      <h2 class="sub">Vehicle &amp; rating</h2>
+      <label>Vehicle type</label>
+      <select id="vehicle_type"></select>
+
+      <div class="field-row">
+        <div><label>Zone</label><select id="zone"></select></div>
+        <div><label>Rating category</label><select id="rating_category"></select></div>
+      </div>
+
+      <div class="field-row">
+        <div><label>Vehicle age (years)</label><input type="number" id="vehicle_age_years"></div>
+        <div><label>Seats</label><input type="number" id="seats"></div>
+      </div>
+
+      <div class="field-row">
+        <div><label>Engine capacity (CC)</label><input type="number" id="engine_cc"></div>
+        <div><label>GVW (kg, goods only)</label><input type="number" id="gvw_kg"></div>
+      </div>
+      <p class="note">CC often needs manual entry — RC cards print it in a multi-column row that plain OCR can't reliably split.</p>
+
+      <h2 class="sub">Premium inputs</h2>
+      <div class="field-row field-highlight">
+        <div><label>Sum Insured (IDV) ₹</label><input type="number" id="idv"></div>
+        <div><label>OD discount %</label><input type="number" id="od_discount_pct" value="0"></div>
+      </div>
+
+      <label>Previous NCB %</label>
+      <select id="previous_ncb">
+        <option value="-1">NIL — no claim-free years yet</option>
+        <option value="0">0%</option>
+        <option value="20">20%</option>
+        <option value="25">25%</option>
+        <option value="35">35%</option>
+        <option value="45">45%</option>
+        <option value="50">50%</option>
+      </select>
+
+      <h2 class="sub">Add-on covers</h2>
+      <p class="note" id="addon-eligibility"></p>
+      <div class="addon-grid" id="od-addons"></div>
+      <div class="addon-grid" id="tp-addons"></div>
+
+      <button class="primary" id="recalc-btn">Recalculate</button>
+      <button class="secondary" id="new-quote-btn">Start a new quote</button>
+    </div>
+
+    <div class="card">
+      <h2>Quote</h2>
+      <div class="premium-total">
+        <div style="font-size:.82rem;opacity:.85;">Total premium payable</div>
+        <div class="amount" id="grand-total">—</div>
+      </div>
+      <div id="breakdown"></div>
+      <p class="note warn" id="rate-warning"></p>
+      <p class="note" id="save-status"></p>
+    </div>
+  </div>
+
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBbrsBUwXqSWh84-d1dNHUf70Qy_dqG-So",
+  authDomain: "motor-premium-calculator.firebaseapp.com",
+  projectId: "motor-premium-calculator",
+  storageBucket: "motor-premium-calculator.firebasestorage.app",
+  messagingSenderId: "409058272522",
+  appId: "1:409058272522:web:51bc11277906cfb40406f3",
+  measurementId: "G-5RDB6Z53L9",
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+const el = (id) => document.getElementById(id);
+const money = (n) => "₹" + Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+
+/* ============================================================
+   RATE CHART  (embedded — no network fetch needed)
+   ============================================================ */
+const RATE_DATA = [{"zone":"A","age":"< 5 YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.664,"tp":4492.0,"ll":0.0},{"zone":"A","age":"5 - 7YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.706,"tp":4492.0,"ll":0.0},{"zone":"A","age":">7 YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.747,"tp":4492.0,"ll":0.0},{"zone":"B","age":">7 YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.739,"tp":4492.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.656,"tp":4492.0,"ll":0.0},{"zone":"B","age":"5 - 7YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.697,"tp":4492.0,"ll":0.0},{"zone":"C","age":"< 5 YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.64,"tp":4492.0,"ll":0.0},{"zone":"C","age":">7 YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.722,"tp":4492.0,"ll":0.0},{"zone":"C","age":"5 - 7YRS","cat":"GCV 3 W","type":"GCV 3 WHEELER","od":1.681,"tp":4492.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"12001-20000 KGS","type":"GCV 4 WHEELERS","od":1.751,"tp":35313.0,"ll":0.0},{"zone":"A","age":">7 YRS","cat":"12001-20000 KGS","type":"GCV 4 WHEELERS","od":1.839,"tp":35313.0,"ll":0.0},{"zone":"A","age":"5 - 7YRS","cat":"12001-20000 KGS","type":"GCV 4 WHEELERS","od":1.795,"tp":35313.0,"ll":0.0},{"zone":"C","age":"< 5 YRS","cat":"12001-20000 KGS","type":"GCV 4 WHEELERS","od":1.726,"tp":35313.0,"ll":0.0},{"zone":"C","age":">7 YRS","cat":"12001-20000 KGS","type":"GCV 4 WHEELERS","od":1.812,"tp":35313.0,"ll":0.0},{"zone":"C","age":"5 - 7YRS","cat":"12001-20000 KGS","type":"GCV 4 WHEELERS","od":1.77,"tp":35313.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"20001-40000","type":"GCV 4 WHEELERS","od":1.751,"tp":43950.0,"ll":0.0},{"zone":"A","age":">7 YRS","cat":"20001-40000","type":"GCV 4 WHEELERS","od":1.839,"tp":43950.0,"ll":0.0},{"zone":"A","age":"5 - 7YRS","cat":"20001-40000","type":"GCV 4 WHEELERS","od":1.795,"tp":43950.0,"ll":0.0},{"zone":"C","age":"< 5 YRS","cat":"20001-40000","type":"GCV 4 WHEELERS","od":1.726,"tp":43950.0,"ll":0.0},{"zone":"C","age":">7 YRS","cat":"20001-40000","type":"GCV 4 WHEELERS","od":1.812,"tp":43950.0,"ll":0.0},{"zone":"C","age":"5 - 7YRS","cat":"20001-40000","type":"GCV 4 WHEELERS","od":1.77,"tp":43950.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"7501-12000 KGS","type":"GCV 4 WHEELERS","od":1.751,"tp":27186.0,"ll":0.0},{"zone":"A","age":">7 YRS","cat":"7501-12000 KGS","type":"GCV 4 WHEELERS","od":1.839,"tp":27186.0,"ll":0.0},{"zone":"A","age":"5 - 7YRS","cat":"7501-12000 KGS","type":"GCV 4 WHEELERS","od":1.795,"tp":27186.0,"ll":0.0},{"zone":"C","age":"< 5 YRS","cat":"7501-12000 KGS","type":"GCV 4 WHEELERS","od":1.726,"tp":27186.0,"ll":0.0},{"zone":"C","age":">7 YRS","cat":"7501-12000 KGS","type":"GCV 4 WHEELERS","od":1.812,"tp":27186.0,"ll":0.0},{"zone":"C","age":"5 - 7YRS","cat":"7501-12000 KGS","type":"GCV 4 WHEELERS","od":1.77,"tp":27186.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 40000","type":"GCV 4 WHEELERS","od":1.751,"tp":44242.0,"ll":0.0},{"zone":"A","age":">7 YRS","cat":"ABOVE 40000","type":"GCV 4 WHEELERS","od":1.839,"tp":44242.0,"ll":0.0},{"zone":"A","age":"5 - 7YRS","cat":"ABOVE 40000","type":"GCV 4 WHEELERS","od":1.795,"tp":44242.0,"ll":0.0},{"zone":"C","age":"< 5 YRS","cat":"ABOVE 40000","type":"GCV 4 WHEELERS","od":1.726,"tp":44242.0,"ll":0.0},{"zone":"C","age":">7 YRS","cat":"ABOVE 40000","type":"GCV 4 WHEELERS","od":1.812,"tp":44242.0,"ll":0.0},{"zone":"C","age":"5 - 7YRS","cat":"ABOVE 40000","type":"GCV 4 WHEELERS","od":1.77,"tp":44242.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"UPTO 7500 KGS","type":"GCV 4 WHEELERS","od":1.751,"tp":16049.0,"ll":0.0},{"zone":"A","age":">7 YRS","cat":"UPTO 7500 KGS","type":"GCV 4 WHEELERS","od":1.795,"tp":16049.0,"ll":0.0},{"zone":"A","age":"5 - 7YRS","cat":"UPTO 7500 KGS","type":"GCV 4 WHEELERS","od":1.839,"tp":16049.0,"ll":0.0},{"zone":"C","age":"< 5 YRS","cat":"UPTO 7500 KGS","type":"GCV 4 WHEELERS","od":1.726,"tp":16049.0,"ll":0.0},{"zone":"C","age":">7 YRS","cat":"UPTO 7500 KGS","type":"GCV 4 WHEELERS","od":1.812,"tp":16049.0,"ll":0.0},{"zone":"C","age":"5 - 7YRS","cat":"UPTO 7500 KGS","type":"GCV 4 WHEELERS","od":1.77,"tp":16049.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"1001 TO 1500 CC","type":"TAXI","od":3.448,"tp":7940.0,"ll":978.0},{"zone":"A","age":">10YRS","cat":"1001 TO 1500 CC","type":"TAXI","od":3.62,"tp":7940.0,"ll":978.0},{"zone":"A","age":"5 - 10 YRS","cat":"1001 TO 1500 CC","type":"TAXI","od":3.534,"tp":7940.0,"ll":978.0},{"zone":"B","age":"< 5 YRS","cat":"1001 TO 1500 CC","type":"TAXI","od":3.351,"tp":7940.0,"ll":978.0},{"zone":"B","age":"5 - 10 YRS","cat":"1001 TO 1500 CC","type":"TAXI","od":3.435,"tp":7940.0,"ll":978.0},{"zone":"B","age":">10YRS","cat":"1001 TO 1500 CC","type":"TAXI","od":3.519,"tp":7940.0,"ll":978.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 1500","type":"TAXI","od":3.612,"tp":10523.0,"ll":1117.0},{"zone":"A","age":">10YRS","cat":"ABOVE 1500","type":"TAXI","od":3.793,"tp":10523.0,"ll":1117.0},{"zone":"A","age":"5 - 10 YRS","cat":"ABOVE 1500","type":"TAXI","od":3.703,"tp":10523.0,"ll":1117.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 1500","type":"TAXI","od":3.51,"tp":10523.0,"ll":1117.0},{"zone":"B","age":"5 - 10 YRS","cat":"ABOVE 1500","type":"TAXI","od":3.598,"tp":10523.0,"ll":1117.0},{"zone":"B","age":">10YRS","cat":"ABOVE 1500","type":"TAXI","od":3.686,"tp":10523.0,"ll":1117.0},{"zone":"A","age":"< 5 YRS","cat":"UPTO 1000CC","type":"TAXI","od":3.284,"tp":6040.0,"ll":1162.0},{"zone":"A","age":">10YRS","cat":"UPTO 1000CC","type":"TAXI","od":3.448,"tp":6040.0,"ll":1162.0},{"zone":"A","age":"5 - 10 YRS","cat":"UPTO 1000CC","type":"TAXI","od":3.366,"tp":6040.0,"ll":1162.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 1000CC","type":"TAXI","od":3.191,"tp":6040.0,"ll":1162.0},{"zone":"B","age":"5 - 10 YRS","cat":"UPTO 1000CC","type":"TAXI","od":3.271,"tp":6040.0,"ll":1162.0},{"zone":"B","age":">10YRS","cat":"UPTO 1000CC","type":"TAXI","od":3.351,"tp":6040.0,"ll":1162.0},{"zone":"A","age":"< 5 YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.68,"tp":14494.0,"ll":886.0},{"zone":"A","age":">7 YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.764,"tp":14494.0,"ll":886.0},{"zone":"A","age":"5 - 7YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.722,"tp":14494.0,"ll":886.0},{"zone":"B","age":"< 5 YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.672,"tp":13874.0,"ll":886.0},{"zone":"B","age":">7 YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.756,"tp":13874.0,"ll":886.0},{"zone":"B","age":"5 - 7YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.714,"tp":13874.0,"ll":886.0},{"zone":"C","age":"< 5 YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.656,"tp":14343.0,"ll":877.0},{"zone":"C","age":">7 YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.739,"tp":14343.0,"ll":877.0},{"zone":"C","age":"5 - 7YRS","cat":"07 TO 18 PSGR","type":"PCV > 6 PSGR","od":1.697,"tp":14343.0,"ll":877.0},{"zone":"A","age":"< 5 YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.68,"tp":14343.0,"ll":877.0},{"zone":"A","age":">7 YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.764,"tp":14343.0,"ll":877.0},{"zone":"A","age":"5 - 7YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.722,"tp":14343.0,"ll":877.0},{"zone":"B","age":"< 5 YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.672,"tp":13874.0,"ll":886.0},{"zone":"B","age":">7 YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.756,"tp":13874.0,"ll":886.0},{"zone":"B","age":"5 - 7YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.714,"tp":13874.0,"ll":886.0},{"zone":"C","age":"< 5 YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.656,"tp":14343.0,"ll":877.0},{"zone":"C","age":">7 YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.739,"tp":14343.0,"ll":877.0},{"zone":"C","age":"5 - 7YRS","cat":"19 TO 36 PSGR","type":"PCV > 6 PSGR","od":1.697,"tp":14343.0,"ll":877.0},{"zone":"A","age":"< 5 YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.68,"tp":14343.0,"ll":877.0},{"zone":"A","age":">7 YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.764,"tp":14343.0,"ll":877.0},{"zone":"A","age":"5 - 7YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.722,"tp":14343.0,"ll":877.0},{"zone":"B","age":"< 5 YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.672,"tp":13874.0,"ll":886.0},{"zone":"B","age":">7 YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.756,"tp":13874.0,"ll":886.0},{"zone":"B","age":"5 - 7YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.714,"tp":13874.0,"ll":886.0},{"zone":"C","age":"< 5 YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.656,"tp":14343.0,"ll":877.0},{"zone":"C","age":">7 YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.739,"tp":14343.0,"ll":877.0},{"zone":"C","age":"5 - 7YRS","cat":"37 TO 60 PGSR","type":"PCV > 6 PSGR","od":1.697,"tp":14343.0,"ll":877.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.68,"tp":14343.0,"ll":877.0},{"zone":"A","age":">7 YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.764,"tp":14343.0,"ll":877.0},{"zone":"A","age":"5 - 7YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.722,"tp":14343.0,"ll":877.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.672,"tp":13874.0,"ll":886.0},{"zone":"B","age":">7 YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.756,"tp":13874.0,"ll":886.0},{"zone":"B","age":"5 - 7YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.714,"tp":13874.0,"ll":886.0},{"zone":"C","age":"< 5 YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.656,"tp":14494.0,"ll":886.0},{"zone":"C","age":">7 YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.739,"tp":14494.0,"ll":886.0},{"zone":"C","age":"5 - 7YRS","cat":"ABOVE 60 PSGR","type":"PCV > 6 PSGR","od":1.697,"tp":14494.0,"ll":886.0},{"zone":"A","age":"< 5 YRS","cat":"PCV 3 W > 6","type":"PCV 3 WHEELER >6","od":1.785,"tp":6913.0,"ll":1379.0},{"zone":"A","age":">7 YRS","cat":"PCV 3 W > 6","type":"PCV 3 WHEELER >6","od":1.874,"tp":6913.0,"ll":1379.0},{"zone":"A","age":"5 - 7YRS","cat":"PCV 3 W > 6","type":"PCV 3 WHEELER >6","od":1.83,"tp":6913.0,"ll":1379.0},{"zone":"C","age":"< 5 YRS","cat":"PCV 3 W > 6","type":"PCV 3 WHEELER >6","od":1.759,"tp":6913.0,"ll":1379.0},{"zone":"C","age":">7 YRS","cat":"PCV 3 W > 6","type":"PCV 3 WHEELER >6","od":1.847,"tp":6913.0,"ll":1379.0},{"zone":"C","age":"5 - 7YRS","cat":"PCV 3 W > 6","type":"PCV 3 WHEELER >6","od":1.803,"tp":6913.0,"ll":1379.0},{"zone":"A","age":"< 5 YRS","cat":"< 6 PSGR","type":"PCV 3 WHEELER UPTO 6 PSGR","od":1.278,"tp":2539.0,"ll":1134.0},{"zone":"A","age":">7 YRS","cat":"< 6 PSGR","type":"PCV 3 WHEELER UPTO 6 PSGR","od":1.342,"tp":2539.0,"ll":1134.0},{"zone":"A","age":"5 - 7YRS","cat":"< 6 PSGR","type":"PCV 3 WHEELER UPTO 6 PSGR","od":1.31,"tp":2539.0,"ll":1134.0},{"zone":"C","age":"< 5 YRS","cat":"< 6 PSGR","type":"PCV 3 WHEELER UPTO 6 PSGR","od":1.26,"tp":2539.0,"ll":1134.0},{"zone":"C","age":">7 YRS","cat":"< 6 PSGR","type":"PCV 3 WHEELER UPTO 6 PSGR","od":1.323,"tp":2539.0,"ll":1134.0},{"zone":"C","age":"5 - 7YRS","cat":"< 6 PSGR","type":"PCV 3 WHEELER UPTO 6 PSGR","od":1.292,"tp":2539.0,"ll":1134.0},{"zone":"A","age":"< 5 YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.283,"tp":3416.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.529,"tp":3416.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.447,"tp":3416.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.191,"tp":3416.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.43,"tp":3416.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.351,"tp":3416.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":6.573,"tp":10640.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"1001 TO 1500 CC","type":"PRIVATE CAR","od":3.191,"tp":10640.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.44,"tp":7897.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.698,"tp":7897.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.612,"tp":7897.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.343,"tp":7897.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.594,"tp":7897.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.51,"tp":7897.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":6.886,"tp":24596.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 1500","type":"PRIVATE CAR","od":3.343,"tp":24596.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.127,"tp":2094.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.362,"tp":2094.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.283,"tp":2094.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.039,"tp":2094.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.267,"tp":2094.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.191,"tp":2094.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":6.26,"tp":6521.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 1000CC","type":"PRIVATE CAR","od":3.039,"tp":6521.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.68,"tp":13874.0,"ll":848.0},{"zone":"A","age":">7 YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.764,"tp":13874.0,"ll":848.0},{"zone":"A","age":"5 - 7YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.722,"tp":13874.0,"ll":848.0},{"zone":"B","age":"< 5 YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.672,"tp":13874.0,"ll":848.0},{"zone":"B","age":">7 YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.756,"tp":13874.0,"ll":848.0},{"zone":"B","age":"5 - 7YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.714,"tp":13874.0,"ll":848.0},{"zone":"C","age":"< 5 YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.656,"tp":13874.0,"ll":848.0},{"zone":"C","age":">7 YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.739,"tp":13874.0,"ll":848.0},{"zone":"C","age":"5 - 7YRS","cat":"07 TO 18 PSGR","type":"SCHOOL BUS","od":1.697,"tp":13874.0,"ll":848.0},{"zone":"A","age":"< 5 YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.68,"tp":13874.0,"ll":848.0},{"zone":"A","age":">7 YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.764,"tp":13874.0,"ll":848.0},{"zone":"A","age":"5 - 7YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.722,"tp":13874.0,"ll":848.0},{"zone":"B","age":"< 5 YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.672,"tp":13874.0,"ll":848.0},{"zone":"B","age":">7 YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.756,"tp":13874.0,"ll":848.0},{"zone":"B","age":"5 - 7YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.714,"tp":13874.0,"ll":848.0},{"zone":"C","age":"< 5 YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.656,"tp":13874.0,"ll":848.0},{"zone":"C","age":">7 YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.739,"tp":13874.0,"ll":848.0},{"zone":"C","age":"5 - 7YRS","cat":"19 TO 36 PSGR","type":"SCHOOL BUS","od":1.697,"tp":13874.0,"ll":848.0},{"zone":"A","age":"< 5 YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.68,"tp":13874.0,"ll":848.0},{"zone":"A","age":">7 YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.764,"tp":13874.0,"ll":848.0},{"zone":"A","age":"5 - 7YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.722,"tp":13874.0,"ll":848.0},{"zone":"B","age":"< 5 YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.672,"tp":13874.0,"ll":848.0},{"zone":"B","age":">7 YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.756,"tp":13874.0,"ll":848.0},{"zone":"B","age":"5 - 7YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.714,"tp":13874.0,"ll":848.0},{"zone":"C","age":"< 5 YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.656,"tp":13874.0,"ll":848.0},{"zone":"C","age":">7 YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.739,"tp":13874.0,"ll":848.0},{"zone":"C","age":"5 - 7YRS","cat":"37 TO 60 PGSR","type":"SCHOOL BUS","od":1.697,"tp":13874.0,"ll":848.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.68,"tp":13874.0,"ll":848.0},{"zone":"A","age":">7 YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.764,"tp":13874.0,"ll":848.0},{"zone":"A","age":"5 - 7YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.722,"tp":13874.0,"ll":848.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.672,"tp":13874.0,"ll":848.0},{"zone":"B","age":">7 YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.756,"tp":13874.0,"ll":848.0},{"zone":"B","age":"5 - 7YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.714,"tp":13874.0,"ll":848.0},{"zone":"C","age":"< 5 YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.656,"tp":13874.0,"ll":848.0},{"zone":"C","age":">7 YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.739,"tp":13874.0,"ll":848.0},{"zone":"C","age":"5 - 7YRS","cat":"ABOVE 60 PSGR","type":"SCHOOL BUS","od":1.697,"tp":13874.0,"ll":848.0},{"zone":"A","age":"< 5 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.793,"tp":1366.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.883,"tp":1366.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.928,"tp":1366.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.793,"tp":7365.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":4.35,"tp":7365.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.76,"tp":1366.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.848,"tp":1366.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.802,"tp":1366.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":1.76,"tp":7365.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"151 TO 350","type":"TWO WHEELER","od":4.35,"tp":7365.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.708,"tp":714.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.793,"tp":714.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.836,"tp":714.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.708,"tp":3851.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":4.1,"tp":3851.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.676,"tp":714.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.76,"tp":714.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.802,"tp":714.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":1.676,"tp":3851.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"76 TO 150","type":"TWO WHEELER","od":4.1,"tp":3851.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.879,"tp":2804.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.973,"tp":2804.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":2.02,"tp":2804.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.879,"tp":15117.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":4.55,"tp":15117.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.844,"tp":2804.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.936,"tp":2804.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.982,"tp":2804.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":1.844,"tp":15117.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"ABOVE 350","type":"TWO WHEELER","od":4.55,"tp":15117.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.708,"tp":538.0,"ll":0.0},{"zone":"A","age":"5 - 10 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.793,"tp":538.0,"ll":0.0},{"zone":"A","age":">10YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.836,"tp":538.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.708,"tp":2901.0,"ll":0.0},{"zone":"A","age":"< 5 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":4.1,"tp":2901.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.676,"tp":538.0,"ll":0.0},{"zone":"B","age":"5 - 10 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.76,"tp":538.0,"ll":0.0},{"zone":"B","age":">10YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.802,"tp":538.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":1.676,"tp":2901.0,"ll":0.0},{"zone":"B","age":"< 5 YRS","cat":"UPTO 75CC","type":"TWO WHEELER","od":4.1,"tp":2901.0,"ll":0.0}];
+
+const VEHICLE_TYPE_MAP = {
+  "Two Wheelers": "TWO WHEELER",
+  "Private Cars": "PRIVATE CAR",
+  "Taxi": "TAXI",
+  "PCV > 6 PSGR": "PCV > 6 PSGR",
+  "GCV 4 Wheelers": "GCV 4 WHEELERS",
+  "GCV 3 Wheeler": "GCV 3 WHEELER",
+  "PCV 3 Wheeler Upto 6 PSGR": "PCV 3 WHEELER UPTO 6 PSGR",
+  "PCV 3 Wheeler > 6": "PCV 3 WHEELER >6",
+  "School Bus": "SCHOOL BUS",
+};
+const chartType = (vt) => VEHICLE_TYPE_MAP[vt] || String(vt || "").toUpperCase();
+
+function ageBandMatches(band, age) {
+  const b = band.toUpperCase().replace(/\s/g, "");
+  const nums = (b.match(/\d+/g) || []).map(Number);
+  if (!nums.length) return false;
+  if (b.startsWith("<")) return age < nums[0];
+  if (b.startsWith(">")) return age > nums[0];
+  if (b.includes("-") && nums.length >= 2) return age >= nums[0] && age <= nums[1];
+  return false;
+}
+
+const getZones = (vt) =>
+  [...new Set(RATE_DATA.filter(r => r.type === chartType(vt)).map(r => r.zone))].sort();
+
+const getCategories = (vt, zone) =>
+  [...new Set(RATE_DATA
+    .filter(r => r.type === chartType(vt) && (!zone || r.zone === zone))
+    .map(r => r.cat))].sort();
+
+function matchCategory(categories, value) {
+  for (const cat of categories) {
+    const c = cat.toUpperCase().replace(/,/g, "");
+    const nums = (c.match(/\d+/g) || []).map(Number);
+    if (!nums.length) continue;
+    if (c.includes("UPTO") && value <= nums[0]) return cat;
+    if (c.includes("ABOVE") && value > nums[0]) return cat;
+    if (c.includes("TO") && nums.length >= 2 && value >= nums[0] && value <= nums[1]) return cat;
+  }
+  return null;
+}
+
+function lookupRate(vt, zone, cat, age) {
+  const matches = RATE_DATA.filter(r =>
+    r.type === chartType(vt) &&
+    r.zone.trim().toUpperCase() === String(zone || "").trim().toUpperCase() &&
+    r.cat.trim().toUpperCase() === String(cat || "").trim().toUpperCase() &&
+    ageBandMatches(r.age, age)
+  );
+  if (!matches.length) return { matched: false, od: 0, tp: 0, ll: 0, candidates: [] };
+  return {
+    matched: true,
+    od: matches[0].od,
+    tp: matches[0].tp,
+    ll: matches[0].ll,
+    candidates: matches.length > 1 ? matches : [],
+  };
+}
+
+/* ============================================================
+   CALC ENGINE  (ported from calc_engine.py — same rules)
+   ============================================================ */
+const NCB_CHART = { 0: 20, 20: 25, 25: 35, 35: 45, 45: 50, 50: 50 };
+const GOODS_TYPES = new Set(["GCV 4 Wheelers", "GCV 3 Wheeler"]);
+const PCV_GT6 = "PCV > 6 PSGR";
+// TODO: confirm these PSGR seat-count thresholds against your rate chart.
+const PSGR_BANDS = [[18, 350], [36, 450], [60, 550], [Infinity, 680]];
+
+const OD_ADDONS = [
+  ["nil_depreciation", "Nil Depreciation w/o excess"],
+  ["imt_23", "IMT 23"],
+  ["engine_protection_platinum", "Engine Protection Platinum"],
+  ["engine_protection_standard", "Engine Protection Standard"],
+  ["ev_protect", "EV Protect"],
+  ["return_to_invoice", "Return to Invoice"],
+  ["consumables", "Consumables"],
+  ["loss_of_key", "Loss of Key"],
+  ["tyre_rim_protector", "Tyre and Rim Protector"],
+  ["bifuel", "Bifuel"],
+];
+const TP_ADDONS = [
+  ["compulsory_pa_owner", "Compulsory PA Owner (₹275)"],
+  ["paid_driver", "Paid Driver (₹50)"],
+  ["unnamed_passengers", "Unnamed Passengers (₹50/seat)"],
+  ["legal_liability_to_passengers", "Legal Liability to Passengers"],
+];
+const ADDON_LABELS = Object.fromEntries([...OD_ADDONS, ...TP_ADDONS]);
+
+const currentNcb = (prev) => (prev === -1 ? 0 : (NCB_CHART[prev] ?? 0));
+const psgrSurcharge = (seats) => (PSGR_BANDS.find(([t]) => seats <= t) || PSGR_BANDS[3])[1];
+const addonMaxAge = (vt) => (vt === "Two Wheelers" || vt === "Private Cars" ? 5 : 3);
+const addonAllowed = (vt, age) => age < addonMaxAge(vt);
+const addonPct = (age) => ({ 1: 10, 2: 20, 3: 30 }[Math.min(age + 1, 3)] ?? 30);
+
+function calculateQuote(i) {
+  /* ---- OWN DAMAGE ---- */
+  const basic = i.idv * (i.od_rate_pct / 100);
+
+  let surcharge = 0;
+  const surchargeNotes = [];
+  if (GOODS_TYPES.has(i.vehicle_type) && i.gvw_kg > 12000) {
+    const excess = i.gvw_kg - 12000;
+    surcharge += (excess / 100) * 27;
+    surchargeNotes.push(`GVW excess ${excess} kg @ ₹27/100kg`);
+  }
+  if (i.vehicle_type === PCV_GT6 && i.seats) {
+    const s = psgrSurcharge(i.seats);
+    surcharge += s;
+    surchargeNotes.push(`PSGR band surcharge (${i.seats} seats)`);
+  }
+
+  const subtotal = basic + surcharge;
+  const odDiscAmt = subtotal * (i.od_discount_pct / 100);
+  const afterOdDisc = subtotal - odDiscAmt;
+
+  const ncbPct = currentNcb(i.previous_ncb);
+  const ncbAmt = afterOdDisc * (ncbPct / 100);
+  const afterNcb = afterOdDisc - ncbAmt;
+
+  const odAddonLines = [];
+  let odAddonTotal = 0;
+  const allowed = addonAllowed(i.vehicle_type, i.vehicle_age_years);
+  const pct = addonPct(i.vehicle_age_years);
+  if (allowed) {
+    for (const [key] of OD_ADDONS) {
+      if (i.addons[key]) {
+        const cost = basic * (pct / 100);
+        odAddonLines.push({ key, label: ADDON_LABELS[key], detail: `${pct}% of basic OD`, amount: cost });
+        odAddonTotal += cost;
+      }
+    }
+  }
+
+  const odPreTax = afterNcb + odAddonTotal;
+  const odGst = odPreTax * 0.18;
+  const odTotal = odPreTax + odGst;
+
+  /* ---- THIRD PARTY ---- */
+  const isGoods = GOODS_TYPES.has(i.vehicle_type);
+  const tpGstRate = isGoods ? 0.12 : 0.18;
+  const tpBase = i.tp_rate;
+  const tpBaseGst = tpBase * tpGstRate;
+
+  const tpAddonLines = [];
+  let tpAddonTotal = 0;
+  if (i.addons.compulsory_pa_owner) {
+    tpAddonLines.push({ label: ADDON_LABELS.compulsory_pa_owner, detail: "flat", amount: 275 });
+    tpAddonTotal += 275;
+  }
+  if (i.addons.paid_driver) {
+    tpAddonLines.push({ label: ADDON_LABELS.paid_driver, detail: "flat", amount: 50 });
+    tpAddonTotal += 50;
+  }
+  if (i.addons.unnamed_passengers && i.seats) {
+    const amt = 50 * i.seats;
+    tpAddonLines.push({ label: ADDON_LABELS.unnamed_passengers, detail: `₹50 × ${i.seats} seats`, amount: amt });
+    tpAddonTotal += amt;
+  }
+  if (i.addons.legal_liability_to_passengers && i.seats) {
+    const amt = i.ll_rate_per_psgr * (i.seats - 1);
+    tpAddonLines.push({
+      label: ADDON_LABELS.legal_liability_to_passengers,
+      detail: `₹${i.ll_rate_per_psgr} × ${i.seats - 1} psgr`,
+      amount: amt,
+    });
+    tpAddonTotal += amt;
+  }
+  const tpAddonGst = tpAddonTotal * 0.18;
+  const tpPreTax = tpBase + tpAddonTotal;
+  const tpGst = tpBaseGst + tpAddonGst;
+  const tpTotal = tpPreTax + tpGst;
+
+  return {
+    od: {
+      idv: i.idv, od_rate_pct: i.od_rate_pct, basic, surcharge, surchargeNotes,
+      od_discount_pct: i.od_discount_pct, odDiscAmt,
+      previous_ncb: i.previous_ncb, ncbPct, ncbAmt, afterNcb,
+      addonLines: odAddonLines, addonTotal: odAddonTotal,
+      addonAllowed: allowed, addonPct: pct, addonMaxAge: addonMaxAge(i.vehicle_type),
+      preTax: odPreTax, gst: odGst, gstRate: 18, total: odTotal,
+    },
+    tp: {
+      tp_rate: tpBase, addonLines: tpAddonLines, addonTotal: tpAddonTotal,
+      preTax: tpPreTax, gst: tpGst, gstRate: tpGstRate * 100, total: tpTotal,
+    },
+    totals: {
+      preTax: odPreTax + tpPreTax,
+      gst: odGst + tpGst,
+      grand: odTotal + tpTotal,
+    },
+  };
+}
+
+/* ============================================================
+   OCR  (PDF.js renders pages -> Tesseract.js reads them)
+   ============================================================ */
+async function fileToText(file, onProgress) {
+  const buf = await file.arrayBuffer();
+  const head = new Uint8Array(buf.slice(0, 5));
+  const isPdf = String.fromCharCode(...head) === "%PDF-";
+
+  if (isPdf) {
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let out = "";
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+
+      // Digital PDFs carry a real text layer — use it directly. It is exact,
+      // instant, and avoids OCR error entirely. Only fall back to rendering
+      // + OCR when the text layer is empty (i.e. a scanned/photographed PDF).
+      const textContent = await page.getTextContent();
+      const layerText = textContent.items.map(it => it.str).join(" ").trim();
+      if (layerText.length > 40) {
+        out += layerText + "\n";
+        onProgress?.(p / pdf.numPages);
+        continue;
+      }
+
+      const viewport = page.getViewport({ scale: 2.5 });
+      const canvas = document.createElement("canvas");
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+      const { data } = await Tesseract.recognize(canvas, "eng");
+      out += data.text + "\n";
+      onProgress?.(p / pdf.numPages);
+    }
+    return out;
+  }
+
+  const { data } = await Tesseract.recognize(file, "eng", {
+    logger: (m) => { if (m.status === "recognizing text") onProgress?.(m.progress); },
+  });
+  return data.text;
+}
+
+/* ============================================================
+   FIELD EXTRACTION
+   ============================================================ */
+const RE = {
+  reg: /\b([A-Z]{2}\s?\d{1,2}\s?[A-Z]{0,3}\s?\d{3,4})\b/,
+  date: /(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/g,
+  idv: /(?:idv|sum insured)[^\d₹]{0,15}([\d,]+)/i,
+  ncb: /ncb[^\d]{0,10}(\d{1,3})\s*%/i,
+  seats: /(?:seating[^\d]{0,60}capacity|no\.?\s*of\s*seats|seats)[^\d]{0,60}(\d{1,3})/i,
+  gvw: /(?:gvw|gross vehicle weight)[^\d]{0,10}([\d,]+)/i,
+  cc: /(?:cubic capacity|engine capacity)[:\s/]{0,40}(\d{2,5})(?:\.\d+)?/i,
+  engine: /(?:engine\s*\/?\s*motor|engine|motor)\s*(?:no\.?|number)[:\s]*([A-Z0-9]{5,20})/i,
+  chassis: /chassis\s*(?:no\.?|number)[:\s]*([A-Z0-9]{5,20})/i,
+  // No bare "name" fallback — RC cards have Maker's Name / Model Name that
+  // would false-match before reaching the actual owner.
+  name: /(?:owner'?s?\s*name|name\s*of\s*owner|insured\s*name)[:\s]*([A-Z][A-Za-z .]{2,40})/i,
+  address: /address[:\s]*([A-Z0-9][A-Za-z0-9 .,\-/]{8,120})/i,
+};
+
+const VEHICLE_KEYWORDS = [
+  ["Two Wheelers", ["m-cycle", "motor cycle", "motorcycle", "scooter", "moped", "two wheeler"]],
+  ["Taxi", ["taxi", "motor cab", "maxi cab"]],
+  ["PCV > 6 PSGR", ["omnibus", "passenger carrying"]],
+  ["GCV 4 Wheelers", ["goods carriage", "lorry", "truck"]],
+  ["Private Cars", ["motor car", "m-car", "private car", "saloon", "hatchback"]],
+];
+
+function detectDocType(text) {
+  const l = text.toLowerCase();
+  const rc = ["registration certificate", "chassis", "engine/motor", "regn. number", "form 23"]
+    .filter(k => l.includes(k)).length;
+  const pol = ["policy no", "idv", "sum insured", "ncb", "certificate of insurance"]
+    .filter(k => l.includes(k)).length;
+  return rc > pol ? "rc" : pol > rc ? "policy" : "unknown";
+}
+
+function detectVehicleType(text) {
+  const l = text.toLowerCase();
+  for (const [type, keys] of VEHICLE_KEYWORDS) if (keys.some(k => l.includes(k))) return type;
+  return null;
+}
+
+function extractFields(text) {
+  const f = { _doc_type: detectDocType(text) };
+  const g = (re, cast) => { const m = text.match(re); return m ? (cast ? cast(m[1]) : m[1]) : undefined; };
+  const num = (s) => Number(String(s).replace(/,/g, ""));
+
+  const reg = g(RE.reg); if (reg) f.registration_number = reg.replace(/\s/g, "");
+  const eng = g(RE.engine); if (eng) f.engine_number = eng.toUpperCase();
+  const ch = g(RE.chassis); if (ch) f.chassis_number = ch.toUpperCase();
+  const nm = g(RE.name); if (nm) f.customer_name = nm.trim();
+  const ad = g(RE.address); if (ad) f.customer_address = ad.trim();
+  const idv = g(RE.idv, num); if (idv) f.idv = idv;
+  const ncb = g(RE.ncb, num); if (ncb !== undefined) f.previous_ncb = ncb;
+  const st = g(RE.seats, num); if (st) f.seats = st;
+  const gv = g(RE.gvw, num); if (gv) f.gvw_kg = gv;
+  const cc = g(RE.cc, num); if (cc) f.engine_cc = cc;
+  const vt = detectVehicleType(text); if (vt) f.vehicle_type = vt;
+
+  const dates = [...text.matchAll(RE.date)]
+    .map(m => {
+      let [, d, mo, y] = m; y = Number(y); if (y < 100) y += 2000;
+      const dt = new Date(y, Number(mo) - 1, Number(d));
+      return isNaN(dt) ? null : dt;
+    })
+    .filter(Boolean)
+    .filter(d => d.getFullYear() >= 1980 && d <= new Date());
+  if (dates.length) {
+    const reg = new Date(Math.min(...dates));
+    f.registration_date = reg.toISOString().slice(0, 10);
+    const now = new Date();
+    let age = now.getFullYear() - reg.getFullYear();
+    if (now < new Date(now.getFullYear(), reg.getMonth(), reg.getDate())) age--;
+    f.vehicle_age_years = Math.max(age, 0);
+  }
+  return f;
+}
+
+function mergeFields(list) {
+  const merged = {};
+  const types = [], regs = [];
+  for (const f of list) {
+    types.push(f._doc_type || "unknown");
+    if (f.registration_number) regs.push(f.registration_number.toUpperCase().replace(/\s/g, ""));
+    for (const [k, v] of Object.entries(f)) {
+      if (k === "_doc_type") continue;
+      if (merged[k] === undefined || merged[k] === "" || merged[k] === null) merged[k] = v;
+    }
+  }
+  merged._doc_type = types.join(" + ");
+  const distinct = [...new Set(regs)];
+  merged._reg_numbers = distinct;
+  merged._reg_mismatch = distinct.length > 1;
+  return merged;
+}
+
+/* ============================================================
+   UI
+   ============================================================ */
+let currentUid = null, currentQuoteId = null, staged = [];
+
+onAuthStateChanged(auth, (user) => {
+  currentUid = user ? user.uid : null;
+  el("login-screen").classList.toggle("hidden", !!user);
+  el("upload-screen").classList.toggle("hidden", !user);
+  el("logout-btn").classList.toggle("hidden", !user);
+  if (!user) el("review-screen").classList.add("hidden");
+});
+
+el("login-btn").onclick = async () => {
+  el("login-error").textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, el("email").value.trim(), el("password").value);
+  } catch (e) {
+    el("login-error").textContent = "Sign-in failed — check email and password.";
+  }
+};
+el("logout-btn").onclick = () => signOut(auth);
+
+// -- vehicle type dropdown
+el("vehicle_type").innerHTML = Object.keys(VEHICLE_TYPE_MAP)
+  .map(v => `<option>${v}</option>`).join("");
+
+// -- addon checkboxes
+const addonHtml = ([key, label]) =>
+  `<label class="addon-item"><input type="checkbox" data-addon="${key}"> ${label}</label>`;
+el("od-addons").innerHTML = OD_ADDONS.map(addonHtml).join("");
+el("tp-addons").innerHTML = TP_ADDONS.map(addonHtml).join("");
+
+// -- staging
+el("upload-zone").onclick = () => el("file-input").click();
+el("file-input").onchange = (e) => { addFiles(e.target.files); e.target.value = ""; };
+["dragover", "dragleave", "drop"].forEach(evt =>
+  el("upload-zone").addEventListener(evt, (e) => {
+    e.preventDefault();
+    el("upload-zone").classList.toggle("drag", evt === "dragover");
+    if (evt === "drop") addFiles(e.dataTransfer.files);
+  })
+);
+
+function addFiles(list) { staged.push(...list); renderStaged(); }
+function renderStaged() {
+  el("staged-file-list").innerHTML = staged.map((f, i) =>
+    `<div class="staged-file-row"><span>${f.name}</span>
+     <button data-i="${i}">Remove</button></div>`).join("");
+  el("staged-file-list").querySelectorAll("button").forEach(b =>
+    b.onclick = () => { staged.splice(Number(b.dataset.i), 1); renderStaged(); });
+  el("generate-btn").disabled = staged.length === 0;
+}
+
+// -- generate
+el("generate-btn").onclick = async () => {
+  if (!staged.length) return;
+  el("generate-btn").disabled = true;
+  el("ocr-progress").classList.remove("hidden");
+  const bar = el("ocr-progress").firstElementChild;
+
+  const perDoc = [];
+  const failed = [];
+  for (let i = 0; i < staged.length; i++) {
+    const f = staged[i];
+    el("upload-status").textContent = `Reading ${f.name} (${i + 1} of ${staged.length})…`;
+    try {
+      const text = await fileToText(f, (p) => {
+        bar.style.width = `${Math.round(((i + p) / staged.length) * 100)}%`;
+      });
+      perDoc.push(extractFields(text));
+    } catch (err) {
+      console.error("OCR failed for", f.name, err);
+      failed.push(f.name);
+    }
+  }
+
+  el("ocr-progress").classList.add("hidden");
+  bar.style.width = "0%";
+  el("generate-btn").disabled = false;
+
+  if (!perDoc.length) {
+    el("upload-status").textContent = "Couldn't read any of those documents — try clearer images, or continue and enter details manually.";
+    return;
+  }
+  el("upload-status").textContent = failed.length
+    ? `Note: couldn't read ${failed.join(", ")} — the rest were processed.`
+    : "";
+
+  const merged = mergeFields(perDoc);
+  currentQuoteId = crypto.randomUUID();
+  staged = []; renderStaged();
+  populateReview(merged);
+  el("upload-screen").classList.add("hidden");
+  el("review-screen").classList.remove("hidden");
+};
+
+function fillSelect(sel, opts, chosen) {
+  sel.innerHTML = opts.map(o => `<option ${o === chosen ? "selected" : ""}>${o}</option>`).join("");
+}
+
+function categoryMatchValue() {
+  const vt = el("vehicle_type").value;
+  if (vt === "Two Wheelers" || vt === "Taxi") return Number(el("engine_cc").value) || null;
+  if (vt.startsWith("PCV") || vt === "School Bus") return Number(el("seats").value) || null;
+  if (vt.startsWith("GCV")) return Number(el("gvw_kg").value) || null;
+  return null;
+}
+
+function refreshZoneCategory(preferZone, preferCat) {
+  const vt = el("vehicle_type").value;
+  const zones = getZones(vt);
+  const zone = zones.includes(preferZone) ? preferZone : zones[0];
+  fillSelect(el("zone"), zones, zone);
+
+  const cats = getCategories(vt, zone);
+  const v = categoryMatchValue();
+  const suggested = v ? matchCategory(cats, v) : null;
+  const cat = cats.includes(preferCat) ? preferCat : (suggested || cats[0]);
+  fillSelect(el("rating_category"), cats, cat);
+}
+
+function populateReview(f) {
+  el("doc-tag").textContent = (f._doc_type || "unknown").toUpperCase() + " detected";
+  el("reg-warning").textContent = f._reg_mismatch
+    ? `Warning: documents show different registration numbers (${f._reg_numbers.join(", ")}). Check they're for the same vehicle before quoting.`
+    : "";
+
+  el("customer_name").value = f.customer_name || "";
+  el("customer_address").value = f.customer_address || "";
+  el("registration_number").value = f.registration_number || "";
+  el("chassis_number").value = f.chassis_number || "";
+  el("engine_number").value = f.engine_number || "";
+  el("vehicle_type").value = f.vehicle_type || "Private Cars";
+  el("vehicle_age_years").value = f.vehicle_age_years ?? "";
+  el("seats").value = f.seats ?? "";
+  el("engine_cc").value = f.engine_cc ?? "";
+  el("gvw_kg").value = f.gvw_kg ?? "";
+  el("idv").value = f.idv ?? "";
+  el("od_discount_pct").value = 0;
+  el("previous_ncb").value = String(f.previous_ncb ?? -1);
+
+  refreshZoneCategory();
+  recalc();
+}
+
+function gatherInputs() {
+  const vt = el("vehicle_type").value;
+  const zone = el("zone").value;
+  const cat = el("rating_category").value;
+  const age = Number(el("vehicle_age_years").value) || 0;
+  const rate = lookupRate(vt, zone, cat, age);
+
+  const addons = {};
+  document.querySelectorAll("[data-addon]").forEach(cb => addons[cb.dataset.addon] = cb.checked);
+
+  return {
+    inputs: {
+      vehicle_type: vt, zone, rating_category: cat, vehicle_age_years: age,
+      idv: Number(el("idv").value) || 0,
+      previous_ncb: Number(el("previous_ncb").value),
+      seats: Number(el("seats").value) || null,
+      gvw_kg: Number(el("gvw_kg").value) || null,
+      engine_cc: Number(el("engine_cc").value) || null,
+      od_discount_pct: Number(el("od_discount_pct").value) || 0,
+      od_rate_pct: rate.od, tp_rate: rate.tp, ll_rate_per_psgr: rate.ll,
+      addons,
+    },
+    rate,
+  };
+}
+
+function renderQuote(q, rate) {
+  el("grand-total").textContent = money(q.totals.grand);
+
+  const row = (label, val, cls = "") =>
+    `<div class="bd-row ${cls}"><span>${label}</span><span>${val}</span></div>`;
+
+  let h = `<div class="bd-head">Own Damage</div>`;
+  h += row("Sum Insured (IDV)", money(q.od.idv));
+  h += row(`OD rate (from chart)`, `${q.od.od_rate_pct}%`);
+  h += row("Basic OD premium", money(q.od.basic));
+  if (q.od.surcharge > 0) {
+    h += row("Surcharge", money(q.od.surcharge));
+    q.od.surchargeNotes.forEach(n => h += row(n, "", "sub"));
+  }
+  h += row(`Less OD discount @ ${q.od.od_discount_pct}%`, "− " + money(q.od.odDiscAmt));
+  const ncbLabel = q.od.previous_ncb === -1 ? "NIL" : `${q.od.previous_ncb}%`;
+  h += row(`Less NCB @ ${q.od.ncbPct}% (previous ${ncbLabel})`, "− " + money(q.od.ncbAmt));
+  h += row("OD after discount & NCB", money(q.od.afterNcb));
+
+  if (q.od.addonLines.length) {
+    h += `<div class="bd-head">OD add-on covers</div>`;
+    q.od.addonLines.forEach(a => {
+      h += row(a.label, money(a.amount));
+      h += row(a.detail, "", "sub");
+    });
+    h += row("Add-on subtotal", money(q.od.addonTotal));
+  } else if (!q.od.addonAllowed) {
+    h += `<div class="bd-head">OD add-on covers</div>`;
+    h += row(`Not available — vehicle over ${q.od.addonMaxAge} years`, "—", "sub");
+  }
+
+  h += row("OD taxable value", money(q.od.preTax));
+  h += row("GST @ 18%", money(q.od.gst));
+  h += row("Total OD premium", money(q.od.total), "total");
+
+  h += `<div class="bd-head">Third Party</div>`;
+  h += row("Basic TP premium", money(q.tp.tp_rate));
+  if (q.tp.addonLines.length) {
+    q.tp.addonLines.forEach(a => {
+      h += row(a.label, money(a.amount));
+      h += row(a.detail, "", "sub");
+    });
+    h += row("TP add-on subtotal", money(q.tp.addonTotal));
+  }
+  h += row("TP taxable value", money(q.tp.preTax));
+  h += row(`GST @ ${q.tp.gstRate}%`, money(q.tp.gst));
+  h += row("Total TP premium", money(q.tp.total), "total");
+
+  h += `<div class="bd-head">Summary</div>`;
+  h += row("Total taxable value", money(q.totals.preTax));
+  h += row("Total GST", money(q.totals.gst));
+  h += row("Total premium payable", money(q.totals.grand), "total");
+
+  el("breakdown").innerHTML = h;
+  el("rate-warning").textContent = rate.matched
+    ? (rate.candidates.length ? "Multiple chart rows match this combination — the first was used." : "")
+    : "No rate chart match for this vehicle type / zone / category / age combination — rates are 0 until corrected.";
+}
+
+async function saveQuote(inputs, q) {
+  if (!currentUid || !currentQuoteId) return;
+  try {
+    await setDoc(doc(collection(db, "quotes"), currentQuoteId), {
+      quote_id: currentQuoteId,
+      uid: currentUid,
+      product: "motor",
+      vehicle_type: inputs.vehicle_type,
+      customer_fields: {
+        customer_name: el("customer_name").value,
+        customer_address: el("customer_address").value,
+        registration_number: el("registration_number").value,
+        engine_number: el("engine_number").value,
+        chassis_number: el("chassis_number").value,
+      },
+      od_discount_pct: inputs.od_discount_pct,
+      premium: q.totals.grand,
+      inputs,
+      result: q,
+      status: "saved",
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    }, { merge: true });
+    el("save-status").textContent = "Saved.";
+  } catch (e) {
+    console.error(e);
+    el("save-status").textContent = "Quote shown above but could not be saved: " + e.message;
+  }
+}
+
+let saveTimer = null;
+function recalc() {
+  const { inputs, rate } = gatherInputs();
+  const q = calculateQuote(inputs);
+
+  el("addon-eligibility").textContent = q.od.addonAllowed
+    ? `Add-ons priced at ${q.od.addonPct}% of basic OD premium for a ${inputs.vehicle_age_years}-year-old vehicle.`
+    : `OD add-ons not available — ${inputs.vehicle_type} over ${q.od.addonMaxAge} years.`;
+
+  renderQuote(q, rate);
+
+  // debounce writes so dragging a number field doesn't spam Firestore
+  clearTimeout(saveTimer);
+  el("save-status").textContent = "Saving…";
+  saveTimer = setTimeout(() => saveQuote(inputs, q), 900);
+}
+
+el("recalc-btn").onclick = recalc;
+["idv", "od_discount_pct", "previous_ncb", "vehicle_age_years", "seats", "engine_cc", "gvw_kg"]
+  .forEach(id => el(id).addEventListener("change", () => {
+    if (["engine_cc", "seats", "gvw_kg"].includes(id)) refreshZoneCategory(el("zone").value);
+    recalc();
+  }));
+el("vehicle_type").addEventListener("change", () => { refreshZoneCategory(); recalc(); });
+el("zone").addEventListener("change", () => {
+  const cats = getCategories(el("vehicle_type").value, el("zone").value);
+  const v = categoryMatchValue();
+  fillSelect(el("rating_category"), cats, (v && matchCategory(cats, v)) || cats[0]);
+  recalc();
+});
+el("rating_category").addEventListener("change", recalc);
+document.querySelectorAll("[data-addon]").forEach(cb => cb.addEventListener("change", recalc));
+["customer_name", "customer_address", "registration_number", "chassis_number", "engine_number"]
+  .forEach(id => el(id).addEventListener("change", recalc));
+
+el("new-quote-btn").onclick = () => {
+  currentQuoteId = null;
+  staged = []; renderStaged();
+  el("review-screen").classList.add("hidden");
+  el("upload-screen").classList.remove("hidden");
+  el("upload-status").textContent = "";
+  el("save-status").textContent = "";
+};
+</script>
+
+</body>
+</html>
